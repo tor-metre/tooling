@@ -376,9 +376,9 @@ label="Test Location"
     f.write(data)
     f.close()
     args = [
-        'scp',
+        'cp',
         'newLocations.ini',
-        'wpt-server:/var/www/webpagetest/www/settings/locations.ini'
+        '/var/www/webpagetest/www/settings/locations.ini'
     ]
     run(args)
 
