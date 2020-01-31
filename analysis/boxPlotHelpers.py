@@ -17,7 +17,7 @@ def listToBox(values,n):
     return go.Box(y=values,name=n,boxpoints=False)#,jitter=0.3,pointpos=-1.8)
 
 
-def drawBoxes(boxes,title,ylimit=30000):
+def drawBoxes(boxes,title,ylimit=30000,xaxis_title="Location",yaxis_title="Time (Milliseconds)",xaxis_angle=45):
     fig = go.Figure()
     for b in boxes:
         fig.add_trace(b)
@@ -35,7 +35,7 @@ def drawBoxes(boxes,title,ylimit=30000):
         ),
         xaxis=go.layout.XAxis(
             title=go.layout.xaxis.Title(
-                text="Location",
+                text=xaxis_title,
             font=dict(
                 size=24,
             )
@@ -43,7 +43,7 @@ def drawBoxes(boxes,title,ylimit=30000):
         ),
         yaxis=go.layout.YAxis(
             title=go.layout.yaxis.Title(
-                text="Time (Milliseconds)",
+                text=yaxis_title,
             font=dict(
                 size=24,
             )
@@ -51,7 +51,7 @@ def drawBoxes(boxes,title,ylimit=30000):
         )
     )
     fig.update_yaxes(range=[0,ylimit])
-    fig.update_xaxes(tickangle=45, tickfont=dict(size=18))
+    fig.update_xaxes(tickangle=xaxis_angle, tickfont=dict(size=18))
     fig.update_yaxes(tickangle=0, tickfont=dict(size=18))
     #fig.show()
     byt = fig.to_image(format="png",width=1366,height=720)
