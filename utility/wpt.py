@@ -5,7 +5,6 @@ import json
 import subprocess
 import tempfile
 import utils
-import gcp
 
 def runTest(path,server,key,connectivity='Native',location='firefox'):
     """ Sychronously run a WPT test and return the output.
@@ -56,7 +55,7 @@ def submitTest(job,server,key):
         server - The WPT server to use
         key - The API key for the WPT server
     """
-    location = gcp.rowToLocation(job)
+    location = utils.rowToLocation(job)
     args = [
         'webpagetest',
         'test', job['script'],
@@ -78,9 +77,19 @@ def submitTest(job,server,key):
     return output
 
 def successfulResult(result):
+    """ Checks that a WPT test was successful.
+
+    Returns a boolean value indicating success or failure.
+
+    Parameters:
+        result - A result returned from the WPT API converted into a python object. 
+
+    """
     return result['statusCode'] == 200 and result['statusText'] == 'Test Complete'
 
 def runTask(path,location):
+    """ Runs a WPT test (synchronously), checks the result and saves it
+    """
     r = runTest(path,location=location)
     if not successfulResult(r):
         logging.warning("Task Failed: " + r['statusText'] )

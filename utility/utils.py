@@ -1,32 +1,79 @@
+""" This library file holds functions that don't fit in other locations.
+"""
+
+def getLocation(region,browser,id):
+    """ Turns a GCP Location into a WPT Location
+
+    This function converts a GCP location into a WPT location.
+    Parameters:
+        region - The GCP Region
+        browser - The desired browser
+        id - The desired identity
+
+    Returns a string describing the WPT location.
+    """
+    regions = ['US-Central','EU-Central'] #TODO check 
+    torBrowsers = ['tor-browser-with-changes','tor-browser-without-changes'] #TODO Check
+    browsers = list(torBrowsers)
+    browsers.append('Firefox')
+    if id and 'tor' not in browser:
+        raise RuntimeError('ID specified but not Tor Version '+str(browser))
+    if 'tor' in browser and not id:
+        raise RuntimeError('Tor specified but not id' + str(browser))
+    if region not in regions or browser not in browsers:
+        raise RuntimeError("Incorrect region or browser specified: "+str(region)+" "+str(browser))
+    #Checks passed.
+    if id:
+        return region+'-'+browser+'-'+id
+    else:
+        return region +'-' + browser
+
+def rowToLocation(row):
+    """ Turns a GCP Location into a WPT Location. 
+    """
+    return row['region']+'--'+row['browser']+'--'+row['id']
 
 def gatherScripts(folder,suffix='.wpt'):
+    """ Gathers all WPT Script files from a directory (recursively)
+
+    Parameters:
+        Folder - The folder to recursively search 
+        Suffix - The suffix for WPT script files. 
+    """
     scripts = glob(folder+'/**/*'+suffix,recursive=True)
     return {path.split(path.splitext(s)[0])[1] : s for s in scripts}
 
 def gatherResults(folder,suffix='.bz2'):
+    """ Gathers all WPT Results files from a directory (recursively)
+
+    Parameters:
+        Folder - The folder to recursively search 
+        Suffix - The suffix for WPT Results files. 
+    """
     results = glob(folder+'/**/*'+suffix,recursive=True)
     return results
 
-def gatherJSONResults(folder,tqdm_en=False):
+def gatherJSONResults(folder):
+    """ Loads all WPT Result files from a directory (recursively) into memory
+
+    Parameters:
+        Folder - The folder to recursively search 
+
+    Output: A list results, each result is a Python dictionary.
+    """
     results = gatherResults(folder)
-    if tqdm_en:
-        output = list()
-        for r in tqdm(results,desc='Decompressing and loading JSON'):
-            o = loadResults(r)
-            output.append((r,o))
-        return output
-    else:
-        return list(map(loadResults,results))
+    return list(map(loadResults,results))
 
 def loadScript(p):
-    #Given a script file 
-    #Load it and return the string.
+    """ Given a script file, load it as a string
+    """
     f = open(p,'r')
     s = f.read()
     return s 
 
 def saveResults(result,outFolder='out'):
-    #TODO Error Handling
+    """  Given a result, extract key data, compress it and store it
+    """
     i = result['data']['id']
     label = result['data']['label']
     label = label.replace('..','')
@@ -62,17 +109,14 @@ def saveResults(result,outFolder='out'):
         return (True, folder,[]) 
 
 def loadResults(result):
-    #Open 
+    """ Given a result file, decompress it and load the object into memory. 
+    """
     f = open(result,'rb')
-    #Decompress
     s = decompress(f.read())
     f.close()
-    #Jsonise
     try:
-        print("trying")
         j = loads(s)
     except JSONDecodeError as E:
         print(E)
         return None
-    #return
     return j
