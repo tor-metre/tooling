@@ -3,7 +3,7 @@
 # and the database
 
 import sqlite3
-from wpt_test import gatherScripts
+from tooling.utiliy.wpt_test import gatherScripts
 from datetime import datetime
 
 dbLocation = "test.db" #TODO Fix
