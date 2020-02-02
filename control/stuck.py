@@ -1,8 +1,7 @@
-from killer import getActiveQueues
-from initiator import getQueueStatus,getActiveInstances,zoneFromName
+from time import sleep
 
-from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
+from gcp import getActiveInstances,deleteInstance
+from wpt import getActiveQueues
 
 def getCandidates():
     aliveInstances = set([x['name'] for x in getActiveInstances()])
@@ -16,7 +15,7 @@ def getCandidates():
             actualStuck.add(c)
     return actualStuck
 
-from time import sleep
+
 
 c1 = getCandidates()
 print("There are "+str(len(c1))+" candidates for being stuck")

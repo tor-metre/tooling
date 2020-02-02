@@ -1,12 +1,13 @@
 import sqlite3
-from tempfile import SpooledTemporaryFile
-from json import loads, dumps
-from subprocess import run
+from gcp import getInstances, getActiveInstances, getStoppedInstances, restartInstance, startInstance
+from jobs import getPendingLocations,setJobQueued,setJobFailed,getUpcomingJobs,getAllLocations
+from wpt import submitTest, setServerLocations
+from utils import zoneFromName, locationToRow
+from concurrent.futures import ThreadPoolExecutor
 
 wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
-from wpt_test import submitTest
 
 def checkandStartInstances(sql):
     #Get locations From server
@@ -51,7 +52,7 @@ def doJob(j):
         setJobFailed(j,r,db,sql)
         return False
 
-from concurrent.futures import ThreadPoolExecutor
+
 
 def submitJobs(jobs):
     executor = ThreadPoolExecutor(max_workers=55)
@@ -76,7 +77,6 @@ def oldsubmitJobs(jobs,server):
     success = 0
     for j in jobs: 
         i = j['id']
-        from wpt_test import submitTest
         r = submitTest(j,server,key)
         if int(r['statusCode']) == 200:
             setJobQueued(j,r)

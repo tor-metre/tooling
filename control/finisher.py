@@ -1,20 +1,12 @@
-#Loop:
-# Get Finished Jobs
-# Download and store them 
-# Update DB
-
-import sqlite3 
+from wpt import getJSON
+from utils import saveResults
+from jobs import getFinished
+import sqlite3
 from time import sleep
-from tempfile import SpooledTemporaryFile
-from json import loads, dumps
-from subprocess import run
-from datetime import datetime,timedelta
-from tqdm import tqdm 
 
 wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
-from concurrent.futures import ThreadPoolExecutor
 
 def downloadJob(i,wptserver):
     jRes= getJSON(i,wptserver)

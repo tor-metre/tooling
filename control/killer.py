@@ -7,8 +7,9 @@
 # 2) List of all active instances 
 
 import sqlite3
-from tooling.utility.util import rowToLocation
-
+from utils import rowToLocation
+from wpt import getActiveQueues
+from gcp import getActiveInstances,stopInstance
 
 def getUpcomingJobLocations(sql):
     cmd = """ SELECT region,browser,id FROM jobs WHERE status = 'AWAITING'   
