@@ -1,4 +1,4 @@
-from initiator import getQueueStatus
+from wpt import getQueueStatus
 
 wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
