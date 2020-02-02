@@ -16,6 +16,10 @@ key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
 from concurrent.futures import ThreadPoolExecutor
 
+def downloadJob(i,wptserver):
+    jRes= getJSON(i,wptserver)
+    return saveResults(jRes,'../temp-steady-street')
+
 def doJob(r):
     try:
         i,t = r
@@ -25,7 +29,7 @@ def doJob(r):
             #Must be at least X time in queue. 
         #    return None
         #if checkFinished(i,wptserver):
-        return i,downloadJob(i)
+        return i,downloadJob(i,wptserver)
         #else:
         #    return None 
     except Exception as E:

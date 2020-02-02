@@ -3,8 +3,9 @@
 
 import json
 import subprocess
-import tempfile
+from tempfile import SpooledTemporaryFile
 import utils
+import logging
 
 def runTest(path,server,key,connectivity='Native',location='firefox'):
     """ Sychronously run a WPT test and return the output.
@@ -35,7 +36,7 @@ def runTest(path,server,key,connectivity='Native',location='firefox'):
         '--first', #Don't try for a repeat view
         '--poll','5' #How frequently to poll the web server for the result
     ]
-    outT = tempfile.SpooledTemporaryFile(mode='w+') 
+    outT = SpooledTemporaryFile(mode='w+')
     result = subprocess.run(args,stdout=outT,bufsize=4096,check=True)
     outT.seek(0) #Have to return to the start of the file to read it. 
     result = outT.read()
@@ -68,7 +69,7 @@ def submitTest(job,server,key):
         '--keepua', #Don't change the useragent to indicate this is a bot
         '--first', #Don't try for a repeat view
     ]
-    outT = tempfile.SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
+    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
     result = subprocess.run(args,stdout=outT,bufsize=4096,check=True)
     outT.seek(0) #Have to return to the start of the file to read it. 
     result = outT.read()
@@ -110,11 +111,11 @@ def getTesters(wptserver):
     #for arg in args:
     #    cmd = cmd + arg + ' '
     #print(cmd)
-    result = run(args,stdout=outT,bufsize=4096,check=True)
+    result = subprocess.run(args,stdout=outT,bufsize=4096,check=True)
     outT.seek(0) #Have to return to the start of the file to read it. 
     result = outT.read()
     outT.close()
-    output = loads(result) #String to JSON
+    output = json.loads(result) #String to JSON
     #Format (not checked)
     #['data']['location] {id,status,testers}
     return output  
@@ -135,11 +136,11 @@ def getQueueStatus(server):
     #for arg in args:
     #    cmd = cmd + arg + ' '
     #print(cmd)
-    result = run(args,stdout=outT,bufsize=4096,check=True)
+    result = subprocess.run(args,stdout=outT,bufsize=4096,check=True)
     outT.seek(0) #Have to return to the start of the file to read it. 
     result = outT.read()
     outT.close()
-    output = loads(result) #String to JSON
+    output = json.loads(result) #String to JSON
     #Format (not checked)
     #['data']['location] {id,status,PendingTests} PendingTests{Total,Testing,Idle}
     return output  
@@ -149,7 +150,7 @@ def getActiveQueues():
     return [k for (k,v) in queues.items() if v > 0]
 
 
-def getQueuedJobs():
+def getQueuedJobs(wptserver):
     q = getQueueStatus(wptserver)
     if 'data' not in q['response'].keys():
         #No queues up!
@@ -162,7 +163,7 @@ def getQueuedJobs():
             result[l] = t
     else:
         return {
-            q['response']['data']['location']['id'] : 
+            q['response']['data']['location']['id'] :
             q['response']['data']['location']['PendingTests']['Total']
         }
     return result
@@ -206,7 +207,7 @@ label="Test Location"
         'newLocations.ini',
         '/var/www/webpagetest/www/settings/locations.ini'
     ]
-    run(args)
+    subprocess.run(args)
 
 def checkFinished(id,server):
 
@@ -217,11 +218,11 @@ def checkFinished(id,server):
             server
     ]
     outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
-    result = run(args,stdout=outT,bufsize=4096,check=True)
+    result = subprocess.run(args,stdout=outT,bufsize=4096,check=True)
     outT.seek(0) #Have to return to the start of the file to read it. 
     result = outT.read()
     outT.close()
-    output = loads(result) #String to JSON
+    output = json.loads(result) #String to JSON
     if int(output['statusCode']) == 200:
         return True
     else:
@@ -235,14 +236,9 @@ def getJSON(id,server):
             server
     ]
     outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
-    result = run(args,stdout=outT,bufsize=4096,check=True)
+    result = subprocess.run(args,stdout=outT,bufsize=4096,check=True)
     outT.seek(0) #Have to return to the start of the file to read it. 
     result = outT.read()
     outT.close()
-    output = loads(result) #String to JSON
-    return output 
-
-def downloadJob(i):
-    jRes= getJSON(i,wptserver)
-    from wpt_test import saveResults
-    return saveResults(jRes,'../temp-steady-street')
+    output = json.loads(result) #String to JSON
+    return output
