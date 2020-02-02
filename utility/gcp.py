@@ -81,3 +81,34 @@ def deleteInstance(name):
     # Name of the instance resource to stop.
     request = service.instances().delete(project=project, zone=zone, instance=name)
     response = request.execute()
+
+def checkandStartInstances(sql):
+    #Get locations From server
+    #Where offline
+    #and exist Queued or Upcoming
+    #Start. 
+    zones = ['us-central1-a']
+    AllInstances = getInstances(zones)
+    AllInstances = set([x['name'] for x in AllInstances])
+    PendingLocations = getPendingLocations(sql)
+    ActiveInstances = getActiveInstances()
+    StoppedInstances = getStoppedInstances()
+    ActiveLocations = set([x['name'] for x in ActiveInstances])
+    StoppedLocations = set([x['name'] for x in StoppedInstances])
+    print('Stopped locations: '+str(StoppedLocations))
+    ToStart = PendingLocations - ActiveLocations
+    print('Identified '+str(len(ToStart))+' instances to start')
+    for s in ToStart:
+        try:
+            if s in StoppedLocations:
+                print("Restarting instance "+str(s))
+                restartInstance(zoneFromName(s),s)
+            else:
+                print("Starting instance "+str(s))
+                r = locationToRow(s)
+                if s in AllInstances:
+                    continue #Do Nothing!
+                startInstance(r['region'],r['browser'],r['id'])
+        except Exception as E:
+            print("Error starting instance, continuing. Message: " + str(E))
+    return True

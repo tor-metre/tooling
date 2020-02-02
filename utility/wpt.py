@@ -144,6 +144,11 @@ def getQueueStatus(server):
     #['data']['location] {id,status,PendingTests} PendingTests{Total,Testing,Idle}
     return output  
 
+def getActiveQueues():
+    queues = getQueuedJobs()
+    return [k for (k,v) in queues.items() if v > 0]
+
+
 def getQueuedJobs():
     q = getQueueStatus(wptserver)
     if 'data' not in q['response'].keys():

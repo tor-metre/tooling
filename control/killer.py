@@ -15,25 +15,6 @@ from initiator import getActiveInstances,rowToLocation,zoneFromName,getQueuedJob
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 
-def getActiveQueues():
-    queues = getQueuedJobs()
-    return [k for (k,v) in queues.items() if v > 0]
-
-def getUpcomingJobLocations():
-    cmd = """ SELECT region,browser,id FROM jobs WHERE status = 'AWAITING'   
-    GROUP BY region,browser,id
-    ;"""
-    sql.execute(cmd)
-    locations = set()
-    for r in sql.fetchall():
-        locations.add(rowToLocation(r))
-    print("There are "+ str(len(locations))+" locations with awaiting jobs")
-    activeQueues = set(getActiveQueues())
-    print("There are "+ str(len(activeQueues))+" locations with active queues")
-    upcomingActive= locations.union(activeQueues)
-    print("There are "+ str(len(upcomingActive))+" unique needed locations")
-    return upcomingActive
-
 if __name__ == '__main__':
     locations = getUpcomingJobLocations()
     print("There are "+str(len(locations))+" active locations")
