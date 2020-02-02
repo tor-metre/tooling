@@ -1,133 +1,12 @@
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 import sqlite3 
-
-
-def getInstances(zones):
-    results = list()
-    for zone in zones:
-        credentials = GoogleCredentials.get_application_default()
-        service = discovery.build('compute', 'v1', credentials=credentials)
-        project = 'moz-fx-dev-djackson-torperf'
-
-        # The name of the zone for this request.
-        #zone = 'us-central1-a'  
-        request = service.instances().list(project=project, zone=zone)
-        while request is not None:
-            response = request.execute()
-            for instance in response['items']:
-                idict = dict()
-                idict['name'] = instance['name']
-                idict['zone'] = zone 
-                idict['creation_time'] = instance['creationTimestamp']
-                idict['status'] = instance['status']
-                if 'location' in instance['metadata'].keys():
-                    idict['location'] = instance['metadata']['location']
-                    idict['stateFile'] = instance['metadata']['stateFile']
-                results.append(idict)
-            request = service.instances().list_next(previous_request=request, previous_response=response)
-    return results
-
-
-def getActiveInstances():
-    #Return a list of active GCE instances (that have been up for 60 seconds at least)
-    zones = ['us-central1-a']
-    results = getInstances(zones)
-    up = [r for r in results if r['status'] == 'RUNNING'] #TODO and r['creation_time']]
-    return up 
-
-def getStoppedInstances():
-    #Return a list of active GCE instances (that have been up for 60 seconds at least)
-    zones = ['us-central1-a']
-    results = getInstances(zones)
-    up = [r for r in results if r['status'] == 'TERMINATED'] #TODO and r['creation_time']]
-    return up 
-
 from tempfile import SpooledTemporaryFile
 from json import loads, dumps
 from subprocess import run
 
 wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
-
-def getTesters(wptserver):
-    #See which locations the server thinks are up. 
-    #Check all active instances appear on this list
-    #Its okay if the server thinks some locations are up but the instances are down. It just hasn't realised yet.
-    args = ['webpagetest',
-            'testers',
-            '--server',
-            wptserver
-    ]
-    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
-    #Stops us hitting the buffer limit if use pipe.
-    #cmd = ""
-    #for arg in args:
-    #    cmd = cmd + arg + ' '
-    #print(cmd)
-    result = run(args,stdout=outT,bufsize=4096,check=True)
-    outT.seek(0) #Have to return to the start of the file to read it. 
-    result = outT.read()
-    outT.close()
-    output = loads(result) #String to JSON
-    #Format (not checked)
-    #['data']['location] {id,status,testers}
-    return output  
-
-
-def getQueueStatus(server):
-    #See which locations the server thinks are up. 
-    #Check all active instances appear on this list
-    #Its okay if the server thinks some locations are up but the instances are down. It just hasn't realised yet.
-    args = ['webpagetest',
-            'locations',
-            '--server',
-            server
-    ]
-    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
-    #Stops us hitting the buffer limit if use pipe.
-    #cmd = ""
-    #for arg in args:
-    #    cmd = cmd + arg + ' '
-    #print(cmd)
-    result = run(args,stdout=outT,bufsize=4096,check=True)
-    outT.seek(0) #Have to return to the start of the file to read it. 
-    result = outT.read()
-    outT.close()
-    output = loads(result) #String to JSON
-    #Format (not checked)
-    #['data']['location] {id,status,PendingTests} PendingTests{Total,Testing,Idle}
-    return output  
-
-def rowToLocation(row):
-    return row['region']+'--'+row['browser']+'--'+row['id']
-
-def locationToRow(location):
-    components = location.split('--')
-    row = dict()
-    row['region'] = components[0]
-    row['browser'] = components[1]
-    row['id'] = components[2]
-    return row
-
-def startInstance(zone,browser,i):
-    #Start an instance
-    #Handle the case where the instance already exists!
-    from start_test import create_instance
-    name = rowToLocation({
-        'region' : zone,
-        'browser' : browser,
-        'id' : i
-    })
-    stateFile = "gs://hungry-serpent//"+str(i)+'.state'
-    return create_instance(zone,name,name,stateFile)
-
-def restartInstance(zone,name):
-    credentials = GoogleCredentials.get_application_default()
-    service = discovery.build('compute', 'v1', credentials=credentials)
-    project = 'moz-fx-dev-djackson-torperf'
-    request = service.instances().start(project=project, zone=zone, instance=name)
-    response = request.execute()
 
 def getJobs(location,status,limit,sql,orderby="",):
     #Get all jobs matching a particualr location,status up to some limit
@@ -142,23 +21,6 @@ def getJobs(location,status,limit,sql,orderby="",):
     sql.execute(cmd)
     return list(sql.fetchall())
 
-def getQueuedJobs():
-    q = getQueueStatus(wptserver)
-    if 'data' not in q['response'].keys():
-        #No queues up!
-        return dict()
-    result = dict()
-    if isinstance(q['response']['data']['location'],list):
-        for v in q['response']['data']['location']:
-            l = v['id']
-            t = v['PendingTests']['Total']
-            result[l] = t
-    else:
-        return {
-            q['response']['data']['location']['id'] : 
-            q['response']['data']['location']['PendingTests']['Total']
-        }
-    return result
 
 def getUpcomingJobs(sql,maxQueueLength=100):
     #Get a list of jobs which should be queued to fill up the buffers.
@@ -289,14 +151,6 @@ def getPendingLocations(sql):
     print('Found '+str(len(locations)) + ' pending locations')
     return locations 
 
-def zoneFromName(name):
-    components = name.split('--')
-    return components[0]
-
-def idFromName(name):
-    components = name.split('--')
-    return components[2]
-
 def checkandStartInstances(sql):
     #Get locations From server
     #Where offline
@@ -340,47 +194,6 @@ def getAllLocations(sql):
         l = rowToLocation(r)
         locations.add(l)
     return locations 
-
-def setServerLocations(locations):
-    #Get all the locations we need. 
-    #Push them to the server.ini 
-    #Using scp?
-    f = open('newLocations.ini','w')
-    data = """[locations]
-1=Test_loc
-default=Test_loc
-  
-[Test_loc]
-1=TESTLOCATIONCHANGEME
-"""
-    count = 1
-    for l in locations:
-        count += 1 
-        data+=  str(count)+"="+l+"\n"
-    data += 'label="Test Location"\n'
-    data += """
-[TESTLOCATIONCHANGEME]
-browser=Chrome,Firefox,Tor Browser
-label="Test Location"
-
-"""
-    #TODO Add additional lines
-    for l in locations:
-        data+= "["+l+"]"+"\n"
-        if 'tor' in l: 
-            data+= "browser=Tor Browser\n"
-        else:
-            data+= "browser=Firefox\n"
-        data+='label="Test Location"\n'
-        data += '\n'
-    f.write(data)
-    f.close()
-    args = [
-        'cp',
-        'newLocations.ini',
-        '/var/www/webpagetest/www/settings/locations.ini'
-    ]
-    run(args)
 
 if __name__ == '__main__':
     #TODO Sort out locations on server! (SSH? Sync? Something else?)

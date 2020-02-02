@@ -16,17 +16,6 @@ def getCandidates():
             actualStuck.add(c)
     return actualStuck
 
-def deleteInstance(name):
-    credentials = GoogleCredentials.get_application_default()
-    service = discovery.build('compute', 'v1', credentials=credentials)
-    # Project ID for this request.
-    project = 'moz-fx-dev-djackson-torperf' 
-    # The name of the zone for this request.
-    zone = zoneFromName(name)
-    # Name of the instance resource to stop.
-    request = service.instances().delete(project=project, zone=zone, instance=name)
-    response = request.execute()
-
 from time import sleep
 
 c1 = getCandidates()

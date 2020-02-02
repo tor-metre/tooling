@@ -28,6 +28,22 @@ def getLocation(region,browser,id):
     else:
         return region +'-' + browser
 
+def zoneFromName(name):
+    components = name.split('--')
+    return components[0]
+
+def idFromName(name):
+    components = name.split('--')
+    return components[2]
+
+def locationToRow(location):
+    components = location.split('--')
+    row = dict()
+    row['region'] = components[0]
+    row['browser'] = components[1]
+    row['id'] = components[2]
+    return row
+
 def rowToLocation(row):
     """ Turns a GCP Location into a WPT Location. 
     """

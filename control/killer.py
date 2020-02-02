@@ -34,18 +34,6 @@ def getUpcomingJobLocations():
     print("There are "+ str(len(upcomingActive))+" unique needed locations")
     return upcomingActive
 
-
-def stopInstance(name):
-    credentials = GoogleCredentials.get_application_default()
-    service = discovery.build('compute', 'v1', credentials=credentials)
-    # Project ID for this request.
-    project = 'moz-fx-dev-djackson-torperf' 
-    # The name of the zone for this request.
-    zone = zoneFromName(name)
-    # Name of the instance resource to stop.
-    request = service.instances().stop(project=project, zone=zone, instance=name)
-    response = request.execute()
-
 if __name__ == '__main__':
     locations = getUpcomingJobLocations()
     print("There are "+str(len(locations))+" active locations")

@@ -94,3 +94,150 @@ def runTask(path,location):
     if not successfulResult(r):
         logging.warning("Task Failed: " + r['statusText'] )
     utils.saveResults(r)
+
+def getTesters(wptserver):
+    #See which locations the server thinks are up. 
+    #Check all active instances appear on this list
+    #Its okay if the server thinks some locations are up but the instances are down. It just hasn't realised yet.
+    args = ['webpagetest',
+            'testers',
+            '--server',
+            wptserver
+    ]
+    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
+    #Stops us hitting the buffer limit if use pipe.
+    #cmd = ""
+    #for arg in args:
+    #    cmd = cmd + arg + ' '
+    #print(cmd)
+    result = run(args,stdout=outT,bufsize=4096,check=True)
+    outT.seek(0) #Have to return to the start of the file to read it. 
+    result = outT.read()
+    outT.close()
+    output = loads(result) #String to JSON
+    #Format (not checked)
+    #['data']['location] {id,status,testers}
+    return output  
+
+
+def getQueueStatus(server):
+    #See which locations the server thinks are up. 
+    #Check all active instances appear on this list
+    #Its okay if the server thinks some locations are up but the instances are down. It just hasn't realised yet.
+    args = ['webpagetest',
+            'locations',
+            '--server',
+            server
+    ]
+    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
+    #Stops us hitting the buffer limit if use pipe.
+    #cmd = ""
+    #for arg in args:
+    #    cmd = cmd + arg + ' '
+    #print(cmd)
+    result = run(args,stdout=outT,bufsize=4096,check=True)
+    outT.seek(0) #Have to return to the start of the file to read it. 
+    result = outT.read()
+    outT.close()
+    output = loads(result) #String to JSON
+    #Format (not checked)
+    #['data']['location] {id,status,PendingTests} PendingTests{Total,Testing,Idle}
+    return output  
+
+def getQueuedJobs():
+    q = getQueueStatus(wptserver)
+    if 'data' not in q['response'].keys():
+        #No queues up!
+        return dict()
+    result = dict()
+    if isinstance(q['response']['data']['location'],list):
+        for v in q['response']['data']['location']:
+            l = v['id']
+            t = v['PendingTests']['Total']
+            result[l] = t
+    else:
+        return {
+            q['response']['data']['location']['id'] : 
+            q['response']['data']['location']['PendingTests']['Total']
+        }
+    return result
+
+def setServerLocations(locations):
+    #Get all the locations we need. 
+    #Push them to the server.ini 
+    #Using scp?
+    f = open('newLocations.ini','w')
+    data = """[locations]
+1=Test_loc
+default=Test_loc
+  
+[Test_loc]
+1=TESTLOCATIONCHANGEME
+"""
+    count = 1
+    for l in locations:
+        count += 1 
+        data+=  str(count)+"="+l+"\n"
+    data += 'label="Test Location"\n'
+    data += """
+[TESTLOCATIONCHANGEME]
+browser=Chrome,Firefox,Tor Browser
+label="Test Location"
+
+"""
+    #TODO Add additional lines
+    for l in locations:
+        data+= "["+l+"]"+"\n"
+        if 'tor' in l: 
+            data+= "browser=Tor Browser\n"
+        else:
+            data+= "browser=Firefox\n"
+        data+='label="Test Location"\n'
+        data += '\n'
+    f.write(data)
+    f.close()
+    args = [
+        'cp',
+        'newLocations.ini',
+        '/var/www/webpagetest/www/settings/locations.ini'
+    ]
+    run(args)
+
+def checkFinished(id,server):
+
+    args = ['webpagetest',
+            'status',
+            id,
+            '--server',
+            server
+    ]
+    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
+    result = run(args,stdout=outT,bufsize=4096,check=True)
+    outT.seek(0) #Have to return to the start of the file to read it. 
+    result = outT.read()
+    outT.close()
+    output = loads(result) #String to JSON
+    if int(output['statusCode']) == 200:
+        return True
+    else:
+        return False
+
+def getJSON(id,server):
+    args = ['webpagetest',
+            'results',
+            id,
+            '--server',
+            server
+    ]
+    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
+    result = run(args,stdout=outT,bufsize=4096,check=True)
+    outT.seek(0) #Have to return to the start of the file to read it. 
+    result = outT.read()
+    outT.close()
+    output = loads(result) #String to JSON
+    return output 
+
+def downloadJob(i):
+    jRes= getJSON(i,wptserver)
+    from wpt_test import saveResults
+    return saveResults(jRes,'../temp-steady-street')

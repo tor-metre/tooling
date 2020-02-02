@@ -14,40 +14,6 @@ from tqdm import tqdm
 wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
-def checkFinished(id,server):
-
-    args = ['webpagetest',
-            'status',
-            id,
-            '--server',
-            server
-    ]
-    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
-    result = run(args,stdout=outT,bufsize=4096,check=True)
-    outT.seek(0) #Have to return to the start of the file to read it. 
-    result = outT.read()
-    outT.close()
-    output = loads(result) #String to JSON
-    if int(output['statusCode']) == 200:
-        return True
-    else:
-        return False
-
-def getJSON(id,server):
-    args = ['webpagetest',
-            'results',
-            id,
-            '--server',
-            server
-    ]
-    outT = SpooledTemporaryFile(mode='w+') #We can specify the size of the memory buffer here if we need.
-    result = run(args,stdout=outT,bufsize=4096,check=True)
-    outT.seek(0) #Have to return to the start of the file to read it. 
-    result = outT.read()
-    outT.close()
-    output = loads(result) #String to JSON
-    return output 
-
 from concurrent.futures import ThreadPoolExecutor
 
 def doJob(r):
@@ -99,11 +65,6 @@ def getFinished(sql,db):
     print("Set Errors: "+str(set_errors))
     print("Successes: "+str(success))
     executor.shutdown(wait=True)
-
-def downloadJob(i):
-    jRes= getJSON(i,wptserver)
-    from wpt_test import saveResults
-    return saveResults(jRes,'../temp-steady-street')
     
 def setErrors(i,f,e,sql,db):
     query = """
