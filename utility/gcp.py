@@ -1,5 +1,85 @@
 """ This library file holds functions for interacting with the Google Compute Platform.
 """
+
+from googleapiclient import discovery
+from oauth2client.client import GoogleCredentials
+from tooling.utility.utils import zoneFromName, rowToLocation, locationToRow
+
+def create_instance(zone, name, location, stateFile):
+    compute = googleapiclient.discovery.build('compute', 'v1')
+    project = "tor-metre-personal"
+    source_disk_image = "firefox-works"
+
+    # Configure the machine
+    machine_type = "zones/%s/machineTypes/n1-standard-2" % zone
+
+    config = {
+        'name': name,
+        'machineType': machine_type,
+        'scheduling' :
+        {
+            'preemptible' : True
+        },
+        # Specify the boot disk and the image to use as a source.
+        'disks': [
+            {
+                'boot': True,
+                'autoDelete': True,
+                'initializeParams': {
+                    'sourceImage': 'projects/'+project+'/global/images/'+source_disk_image,
+                }
+            }
+        ],
+
+        # Specify a network interface with NAT to access the public
+        # internet.
+        'networkInterfaces': [{
+            'network': 'global/networks/default',
+            'accessConfigs': [
+                {'type': 'ONE_TO_ONE_NAT', 'name': 'External NAT'}
+            ]
+        }],
+
+        # Allow the instance to access cloud storage and logging.
+        'serviceAccounts': [{
+            'email': 'default',
+            'scopes': [
+                'https://www.googleapis.com/auth/devstorage.read_write',
+                'https://www.googleapis.com/auth/logging.write'
+            ]
+        }],
+
+        # Metadata is readable from the instance and allows you to
+        # pass configuration from deployment scripts to instances.
+        'metadata': {
+            'items': [{
+                'key': 'shutdown-script',
+                'value': "./shutdown.sh"
+            }, {
+                'key': 'location',
+                'value': location
+            }, {
+                'key': 'stateFile',
+                'value': stateFile
+            }]
+        }
+    }
+
+    return compute.instances().insert(
+        project=project,
+        zone=zone,
+        body=config).execute()
+# [END create_instance]
+
+
+# [START delete_instance]
+def delete_instance(compute, project, zone, name):
+    return compute.instances().delete(
+        project=project,
+        zone=zone,
+        instance=name).execute()
+# [END delete_instance]
+
 def getInstances(zones):
     results = list()
     for zone in zones:
@@ -43,7 +123,6 @@ def getStoppedInstances():
 def startInstance(zone,browser,i):
     #Start an instance
     #Handle the case where the instance already exists!
-    from start_test import create_instance
     name = rowToLocation({
         'region' : zone,
         'browser' : browser,
@@ -81,34 +160,3 @@ def deleteInstance(name):
     # Name of the instance resource to stop.
     request = service.instances().delete(project=project, zone=zone, instance=name)
     response = request.execute()
-
-def checkandStartInstances(sql):
-    #Get locations From server
-    #Where offline
-    #and exist Queued or Upcoming
-    #Start. 
-    zones = ['us-central1-a']
-    AllInstances = getInstances(zones)
-    AllInstances = set([x['name'] for x in AllInstances])
-    PendingLocations = getPendingLocations(sql)
-    ActiveInstances = getActiveInstances()
-    StoppedInstances = getStoppedInstances()
-    ActiveLocations = set([x['name'] for x in ActiveInstances])
-    StoppedLocations = set([x['name'] for x in StoppedInstances])
-    print('Stopped locations: '+str(StoppedLocations))
-    ToStart = PendingLocations - ActiveLocations
-    print('Identified '+str(len(ToStart))+' instances to start')
-    for s in ToStart:
-        try:
-            if s in StoppedLocations:
-                print("Restarting instance "+str(s))
-                restartInstance(zoneFromName(s),s)
-            else:
-                print("Starting instance "+str(s))
-                r = locationToRow(s)
-                if s in AllInstances:
-                    continue #Do Nothing!
-                startInstance(r['region'],r['browser'],r['id'])
-        except Exception as E:
-            print("Error starting instance, continuing. Message: " + str(E))
-    return True

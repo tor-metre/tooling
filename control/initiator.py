@@ -1,6 +1,4 @@
-from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
-import sqlite3 
+import sqlite3
 from tempfile import SpooledTemporaryFile
 from json import loads, dumps
 from subprocess import run
@@ -9,6 +7,37 @@ wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.inter
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
 from wpt_test import submitTest
+
+def checkandStartInstances(sql):
+    #Get locations From server
+    #Where offline
+    #and exist Queued or Upcoming
+    #Start.
+    zones = ['us-central1-a']
+    AllInstances = getInstances(zones)
+    AllInstances = set([x['name'] for x in AllInstances])
+    PendingLocations = getPendingLocations(sql)
+    ActiveInstances = getActiveInstances()
+    StoppedInstances = getStoppedInstances()
+    ActiveLocations = set([x['name'] for x in ActiveInstances])
+    StoppedLocations = set([x['name'] for x in StoppedInstances])
+    print('Stopped locations: '+str(StoppedLocations))
+    ToStart = PendingLocations - ActiveLocations
+    print('Identified '+str(len(ToStart))+' instances to start')
+    for s in ToStart:
+        try:
+            if s in StoppedLocations:
+                print("Restarting instance "+str(s))
+                restartInstance(zoneFromName(s),s)
+            else:
+                print("Starting instance "+str(s))
+                r = locationToRow(s)
+                if s in AllInstances:
+                    continue #Do Nothing!
+                startInstance(r['region'],r['browser'],r['id'])
+        except Exception as E:
+            print("Error starting instance, continuing. Message: " + str(E))
+    return True
 
 def doJob(j):
     db = sqlite3.connect('test.db') #TODO FIX
