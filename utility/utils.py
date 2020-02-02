@@ -1,6 +1,12 @@
 """ This library file holds functions that don't fit in other locations.
 """
 
+from glob import glob
+import json
+import bz2
+import os
+import urllib3
+
 def getLocation(region,browser,id):
     """ Turns a GCP Location into a WPT Location
 
@@ -57,7 +63,7 @@ def gatherScripts(folder,suffix='.wpt'):
         Suffix - The suffix for WPT script files. 
     """
     scripts = glob(folder+'/**/*'+suffix,recursive=True)
-    return {path.split(path.splitext(s)[0])[1] : s for s in scripts}
+    return {os.path.split(os.path.splitext(s)[0])[1] : s for s in scripts}
 
 def gatherResults(folder,suffix='.bz2'):
     """ Gathers all WPT Results files from a directory (recursively)
@@ -94,10 +100,10 @@ def saveResults(result,outFolder='out'):
     label = result['data']['label']
     label = label.replace('..','')
     folder = outFolder+'/'+label+'-'+i
-    makedirs(folder,exist_ok=True)
+    os.makedirs(folder,exist_ok=True)
     f = open(folder+'/results.json.bz2','wb')
-    s = dumps(result).encode('utf-8')
-    f.write(compress(s))
+    s = json.dumps(result).encode('utf-8')
+    f.write(bz2.compress(s))
     f.close()
     urls = list()
     errors = list()
@@ -113,7 +119,7 @@ def saveResults(result,outFolder='out'):
         from urllib.error import HTTPError
         fname = 'R'+str(rnum)+'S'+str(snum)+'.jpg'
         try:
-            urlretrieve(u,filename=folder+'/'+fname)
+            urllib3.urlretrieve(u,filename=folder+'/'+fname)
         except HTTPError as E:
             print('HTTP Error: '+str(E))
             #TODO How to handle / persist this gracefully!?
@@ -128,11 +134,11 @@ def loadResults(result):
     """ Given a result file, decompress it and load the object into memory. 
     """
     f = open(result,'rb')
-    s = decompress(f.read())
+    s = bz2.decompress(f.read())
     f.close()
     try:
-        j = loads(s)
-    except JSONDecodeError as E:
+        j = json.loads(s)
+    except json.JSONDecodeError as E:
         print(E)
         return None
     return j

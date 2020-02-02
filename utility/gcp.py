@@ -3,10 +3,10 @@
 
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
-from tooling.utility.utils import zoneFromName, rowToLocation, locationToRow
+from utils import zoneFromName, rowToLocation, locationToRow
 
 def create_instance(zone, name, location, stateFile):
-    compute = googleapiclient.discovery.build('compute', 'v1')
+    compute = discovery.build('compute', 'v1')
     project = "tor-metre-personal"
     source_disk_image = "firefox-works"
 
