@@ -59,6 +59,17 @@ def submitJobs(jobs):
     executor.shutdown(wait=True)
     return len([x for x in futures if x ==True])
 
+def checkAndSubmitJobs():
+    #Get Locations from Server (all configured for)
+    db = sqlite3.connect('test.db') #TODO FIX
+    db.row_factory = sqlite3.Row
+    sql = db.cursor()
+    upcoming = getUpcomingJobs(sql,maxQueueLength=5)
+    #Get Queued Job Totals
+    s = submitJobs(upcoming)
+    print('Succesfully queued '+str(s)+' jobs')
+    return True
+
 def oldsubmitJobs(jobs,server):
     #Submit a list of jobs and return their IDs
     #Essentially already exists, just needs extracting from the database,
