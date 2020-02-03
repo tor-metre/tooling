@@ -6,76 +6,63 @@ import json
 import bz2
 import os
 import urllib.request
+from urllib.error import HTTPError
+import logging
 
-def getLocation(region,browser,id):
-    """ Turns a GCP Location into a WPT Location
+SEPERATOR = "--"
 
-    This function converts a GCP location into a WPT location.
-    Parameters:
-        region - The GCP Region
-        browser - The desired browser
-        id - The desired identity
 
-    Returns a string describing the WPT location.
-    """
-    regions = ['US-Central','EU-Central'] #TODO check 
-    torBrowsers = ['tor-browser-with-changes','tor-browser-without-changes'] #TODO Check
-    browsers = list(torBrowsers)
-    browsers.append('Firefox')
-    if id and 'tor' not in browser:
-        raise RuntimeError('ID specified but not Tor Version '+str(browser))
-    if 'tor' in browser and not id:
-        raise RuntimeError('Tor specified but not id' + str(browser))
-    if region not in regions or browser not in browsers:
-        raise RuntimeError("Incorrect region or browser specified: "+str(region)+" "+str(browser))
-    #Checks passed.
-    if id:
-        return region+'-'+browser+'-'+id
-    else:
-        return region +'-' + browser
-
-def zoneFromName(name):
-    components = name.split('--')
+def zone_from_name(name):
+    components = name.split(SEPERATOR)
     return components[0]
 
-def idFromName(name):
-    components = name.split('--')
+
+def id_from_name(name):
+    components = name.split(SEPERATOR)
     return components[2]
 
-def locationToRow(location):
-    components = location.split('--')
+
+def location_to_dict(location):
+    components = location.split(SEPERATOR)
     row = dict()
     row['region'] = components[0]
     row['browser'] = components[1]
     row['id'] = components[2]
     return row
 
-def rowToLocation(row):
+
+def dict_to_location(row):
     """ Turns a GCP Location into a WPT Location. 
     """
-    return row['region']+'--'+row['browser']+'--'+row['id']
+    return row['region'] + SEPERATOR + row['browser'] + SEPERATOR + row['id']
 
-def gatherScripts(folder,suffix='.wpt'):
+
+def gather_scripts(folder, suffix='.wpt'):
     """ Gathers all WPT Script files from a directory (recursively)
 
     Parameters:
         Folder - The folder to recursively search 
         Suffix - The suffix for WPT script files. 
     """
-    scripts = glob(folder+'/**/*'+suffix,recursive=True)
-    return {os.path.split(os.path.splitext(s)[0])[1] : s for s in scripts}
+    scripts = glob(folder + '/**/*' + suffix, recursive=True)
+    logging.debug("Discovered {lenScripts} test scripts in {folder}".format(lenScripts=len(scripts), folder=folder))
+    return {os.path.split(os.path.splitext(s)[0])[1]: s for s in scripts}
 
-def gatherResults(folder,suffix='.bz2'):
+
+def gather_compressed_results(folder, suffix='.bz2'):
     """ Gathers all WPT Results files from a directory (recursively)
 
     Parameters:
         Folder - The folder to recursively search 
         Suffix - The suffix for WPT Results files. 
     """
-    results = glob(folder+'/**/*'+suffix,recursive=True)
+    results = glob(folder + '/**/*' + suffix, recursive=True)
+    logging.debug(
+        "Discovered {lenScripts} compressed results in {folder}".format(lenScripts=len(results), folder=folder))
     return results
 
-def gatherJSONResults(folder):
+
+def gather_and_load_results(folder):
     """ Loads all WPT Result files from a directory (recursively) into memory
 
     Parameters:
@@ -83,62 +70,61 @@ def gatherJSONResults(folder):
 
     Output: A list results, each result is a Python dictionary.
     """
-    results = gatherResults(folder)
-    return list(map(loadResults,results))
+    results = gather_compressed_results(folder)
+    return list(map(load_result, results))
 
-def loadScript(p):
+
+def script_to_string(p):
     """ Given a script file, load it as a string
     """
-    f = open(p,'r')
+    f = open(p, 'r')
     s = f.read()
-    return s 
+    return s
 
-def saveResults(result,outFolder='out'):
+
+def save_result(result, results_folder='out'):
     """  Given a result, extract key data, compress it and store it
     """
-    i = result['data']['id']
+    test_id = result['data']['id']
     label = result['data']['label']
-    label = label.replace('..','')
-    folder = outFolder+'/'+label+'-'+i
-    os.makedirs(folder,exist_ok=True)
-    f = open(folder+'/results.json.bz2','wb')
-    s = json.dumps(result).encode('utf-8')
-    f.write(bz2.compress(s))
+    label = label.replace('..', '')
+    test_folder = results_folder + '/' + label + '-' + test_id
+    logging.debug(f"Saving result with id {test_id} and label {label} to {test_folder}")
+    os.makedirs(test_folder, exist_ok=True)
+    f = open(test_folder + '/results.json.bz2', 'wb')
+    result_str = json.dumps(result).encode('utf-8')
+    f.write(bz2.compress(result_str))
     f.close()
     urls = list()
     errors = list()
-    for rnum,r in result['data']['runs'].items():
-        if 'steps' not in r['firstView'].keys():
-            u = r['firstView']['images']['screenShot']
-            urls.append((rnum,0,u))
-            continue 
-        for snum,s in enumerate(r['firstView']['steps']):
-            u = s['images']['screenShot']
-            urls.append((rnum,snum,u))
-    for rnum,snum,u in urls:
-        from urllib.error import HTTPError
-        fname = 'R'+str(rnum)+'S'+str(snum)+'.jpg'
+    for run_number, run_result in result['data']['runs'].items():
+        if 'steps' not in run_result['firstView'].keys():
+            urls.append((run_number, 0, run_result['firstView']['images']['screenShot']))
+            continue
+        for step_number, step_result in enumerate(run_result['firstView']['steps']):
+            urls.append((run_number, step_number, step_result['images']['screenShot']))
+    logging.debug("Discovered {lenURLs} for {test_id} labelled {label}".format(
+        lenURLs=len(urls), test_id=test_id, label=label))
+    for run_number, step_number, url in urls:
+        screenshot_name = 'R' + str(run_number) + 'S' + str(step_number) + '.jpg'
         try:
-            urllib.request.urlretrieve(u,filename=folder+'/'+fname)
+            urllib.request.urlretrieve(url, filename=test_folder + '/' + screenshot_name)
         except HTTPError as E:
-            print('HTTP Error: '+str(E))
-            #TODO How to handle / persist this gracefully!?
+            logging.warning(f"Error {E} fetching URL: {url}")
             errors.append(str(E))
-    if len(errors) > 0:
-        #TODO This could be one line 
-        return (False,folder,errors)
-    else:
-        return (True, folder,[]) 
+        return len(errors) > 0, test_folder, errors
 
-def loadResults(result):
+
+def load_result(result):
     """ Given a result file, decompress it and load the object into memory. 
     """
-    f = open(result,'rb')
+    logging.debug(f"Loading the result at {result}")
+    f = open(result, 'rb')
     s = bz2.decompress(f.read())
     f.close()
     try:
         j = json.loads(s)
     except json.JSONDecodeError as E:
-        print(E)
+        logging.warning(f"Error {E} decoding {result}")
         return None
     return j

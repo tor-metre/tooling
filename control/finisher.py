@@ -1,5 +1,5 @@
 from wpt import WPT
-from utils import saveResults
+from utils import save_result
 from time import sleep
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
@@ -8,7 +8,7 @@ from jobs import Jobs
 
 
 def downloadJob(wpt, i, output):
-    return saveResults(wpt.get_test_result(i), output)
+    return save_result(wpt.get_test_result(i), output)
 
 def doJob(r):
     try:

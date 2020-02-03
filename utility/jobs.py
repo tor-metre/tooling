@@ -1,4 +1,4 @@
-from utils import rowToLocation, locationToRow
+from utils import dict_to_location, location_to_dict
 from datetime import datetime
 import sqlite3
 
@@ -53,7 +53,7 @@ class Jobs:
     def getAllLocations(self):
         query = "SELECT region,browser,id FROM jobs GROUP BY region,browser,id"
         self.cursor.execute(query)
-        return set([rowToLocation(r) for r in self.cursor.fetchall()])
+        return set([dict_to_location(r) for r in self.cursor.fetchall()])
 
     def setJobQueued(self, job, result):
         newStatus = 'SUBMITTED'
@@ -86,12 +86,12 @@ class Jobs:
         # print(query)
         self.cursor.execute(query)
         results = self.cursor.fetchall()
-        locations = set([rowToLocation(r) for r in self.cursor.fetchall()])
+        locations = set([dict_to_location(r) for r in self.cursor.fetchall()])
         print('Found ' + str(len(locations)) + ' pending locations')
         return locations
 
     def getJobs(self, location, status, limit, orderby="", ):
-        row = locationToRow(location)
+        row = location_to_dict(location)
         cmd = """ SELECT * FROM jobs where region = '""" + row['region'] + """'
         AND browser = '""" + row['browser'] + """'
         AND id = '""" + row['id'] + """'
@@ -105,7 +105,7 @@ class Jobs:
            GROUP BY region,browser,id
            ;"""
         self.cursor.execute(cmd)
-        return set([rowToLocation(r) for r in self.cursor.fetchall()])
+        return set([dict_to_location(r) for r in self.cursor.fetchall()])
 
     def getSubmitted(self):
         query = """

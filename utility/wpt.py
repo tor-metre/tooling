@@ -88,7 +88,7 @@ class WPT:
         job.
         """
         if "location" not in job.keys():
-            job["location"] = utils.rowToLocation(job)
+            job["location"] = utils.dict_to_location(job)
         self.logger.debug("Asynchronously running a test labelled {label} on {script} with location {location},"
                           " {runs} runs, connectivity {connectivity}".format_map(job))
         args = [
@@ -113,7 +113,7 @@ class WPT:
             logging.warning("Synchronous test failed for {path} on location {location} with connectivity"
                             "{connectivity}. The result was {r} "
                             .format(path=path, location=location, connectivity=connectivity, r=r))
-        utils.saveResults(r)
+        utils.save_result(r)
 
     def get_testers(self):
         args = ['webpagetest',

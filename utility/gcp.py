@@ -2,7 +2,7 @@
 """
 
 from googleapiclient import discovery
-from utils import zoneFromName, rowToLocation
+from utils import zone_from_name, dict_to_location
 import logging
 
 
@@ -74,7 +74,7 @@ class GCP:
             body=config).execute()
 
     def new_instance(self, zone, browser, i):
-        name = rowToLocation({
+        name = dict_to_location({
             'region': zone,
             'browser': browser,
             'id': i
@@ -84,17 +84,17 @@ class GCP:
 
     def start_instance(self, name):
         self.logger.debug("Starting instance {name}".format(name=name))
-        zone = zoneFromName(name)
+        zone = zone_from_name(name)
         return self.compute.instances().start(project=self.project, zone=zone, instance=name).execute()
 
     def stop_instance(self, name):
         self.logger.debug("Stopping instance {name}".format(name=name))
-        zone = zoneFromName(name)
+        zone = zone_from_name(name)
         return self.compute.instances().stop(project=self.project, zone=zone, instance=name).execute()
 
     def delete_instance(self, name):
         self.logger.debug("Deleting instance {name}".format(name=name))
-        zone = zoneFromName(name)
+        zone = zone_from_name(name)
         return self.compute.instances().delete(project=self.project, zone=zone, instance=name).execute()
 
     def get_instances(self, zones=None):

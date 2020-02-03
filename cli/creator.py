@@ -3,7 +3,7 @@
 # and the database
 
 import sqlite3
-from utils import gatherScripts
+from utils import gather_scripts
 from jobs import Jobs
 
 dbLocation = "test.db" #TODO Fix
@@ -28,9 +28,9 @@ def generateJobs(jobs,regions,browsers,ids,scripts,reps):
 if __name__ == '__main__':
     #Do things
     jobs = Jobs('test.db')
-    scripts = gatherScripts('../wpt-instrumentation/baseline/original')
+    scripts = gather_scripts('../wpt-instrumentation/baseline/original')
     generateJobs(jobs,['us-central1-a'],['tor-without-timer'],range(1000,1010),scripts,range(2))
     generateJobs(jobs,['us-central1-a'],['tor-with-timer'],range(1010,1020),scripts,range(2))
-    scripts = gatherScripts('../wpt-instrumentation/baseline/ublock')
+    scripts = gather_scripts('../wpt-instrumentation/baseline/ublock')
     generateJobs(jobs,['us-central1-a'],['tor-without-timer'],range(1020,1030),scripts,range(2))
     generateJobs(jobs,['us-central1-a'],['tor-with-timer'],range(1030,1040),scripts,range(2))

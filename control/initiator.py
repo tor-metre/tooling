@@ -2,7 +2,7 @@ import sqlite3
 from gcp import GCP
 from jobs import Jobs
 from wpt import WPT
-from utils import zoneFromName, locationToRow
+from utils import zone_from_name, location_to_dict
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep
 
@@ -26,10 +26,10 @@ def checkandStartInstances(jobs,gcp):
         try:
             if s in StoppedLocations:
                 print("Restarting instance " + str(s))
-                gcp.restartInstance(zoneFromName(s), s)
+                gcp.restartInstance(zone_from_name(s), s)
             else:
                 print("Starting instance " + str(s))
-                r = locationToRow(s)
+                r = location_to_dict(s)
                 if s in AllInstances:
                     continue  # Do Nothing!
                 gcp.start_instance(r['region'], r['browser'], r['id'])
