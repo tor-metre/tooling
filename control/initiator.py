@@ -1,6 +1,6 @@
 import sqlite3
 from gcp import GCP
-from jobs import getPendingLocations, setJobQueued, setJobFailed, getJobs, getAllLocations
+from jobs import Jobs
 from wpt import WPT
 from utils import zoneFromName, locationToRow
 from concurrent.futures import ThreadPoolExecutor
@@ -10,11 +10,11 @@ wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.inter
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
 
-def checkandStartInstances(sql,gcp):
+def checkandStartInstances(jobs,gcp):
     zones = gcp.getZones()
     AllInstances = gcp.getInstances(zones)
     AllInstances = set([x['name'] for x in AllInstances])
-    PendingLocations = getPendingLocations(sql)
+    PendingLocations = jobs.getPendingLocations()
     ActiveInstances = gcp.getActiveInstances()
     StoppedInstances = gcp.getStoppedInstances()
     ActiveLocations = set([x['name'] for x in ActiveInstances])
@@ -37,7 +37,7 @@ def checkandStartInstances(sql,gcp):
             print("Error starting instance, continuing. Message: " + str(E))
     return True
 
-def getUpcomingJobs(wpt,sql, maxQueueLength=100):
+def getUpcomingJobs(wpt,jobs, maxQueueLength=100):
     # Get a list of jobs which should be queued to fill up the buffers.
     queued = wpt.getQueuedJobs()
     toQueueJobs = list()
@@ -48,8 +48,7 @@ def getUpcomingJobs(wpt,sql, maxQueueLength=100):
         if toQueue < 1:
             continue
         else:
-            notQueued = getJobs(l, 'AWAITING', toQueue, sql,
-                                orderby=" ORDER BY iter ASC, step ASC ")  # TODO ORDERBY!!! TODO
+            notQueued = jobs.getJobs(l, 'AWAITING', toQueue, orderby=" ORDER BY iter ASC, step ASC ")  # TODO ORDERBY!!! TODO
             print('Found ' + str(len(notQueued)) + ' jobs to queue')
             toQueueJobs.extend(notQueued)
     return toQueueJobs
@@ -61,12 +60,13 @@ def doJob(j):
     server = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
     key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
     wpt = WPT(server,key)
+    jobs = Jobs('test.db')
     r = wpt.submitTest(j, wptserver, key)
     if int(r['statusCode']) == 200:
-        setJobQueued(j, r, db, sql)
+        jobs.setJobQueued(j, r)
         return True
     else:
-        setJobFailed(j, r, db, sql)
+        jobs.setJobFailed(j, r)
         return False
 
 
@@ -77,12 +77,9 @@ def submitJobs(jobs):
     return len([x for x in futures if x == True])
 
 
-def checkAndSubmitJobs(wpt):
+def checkAndSubmitJobs(wpt,jobs):
     # Get Locations from Server (all configured for)
-    db = sqlite3.connect('test.db')  # TODO FIX
-    db.row_factory = sqlite3.Row
-    sql = db.cursor()
-    upcoming = getUpcomingJobs(wpt,sql, maxQueueLength=5)
+    upcoming = getUpcomingJobs(wpt,jobs, maxQueueLength=5)
     # Get Queued Job Totals
     s = submitJobs(upcoming)
     print('Succesfully queued ' + str(s) + ' jobs')
@@ -97,15 +94,13 @@ if __name__ == '__main__':
     locations_file = '/var/www/webpagetest/www/settings/locations.ini'
     wpt = WPT(server,key,locations_file=locations_file)
     iterations = 0
-    db = sqlite3.connect('test.db')  # TODO FIX
-    db.row_factory = sqlite3.Row
-    sql = db.cursor()
-    wpt.setServerLocations(getAllLocations(sql))
-    checkandStartInstances(sql)
+    jobs = Jobs('test.db')
+    wpt.setServerLocations(jobs.getAllLocations())
+    checkandStartInstances(jobs,gcp)
     while True:
-        checkAndSubmitJobs(wpt)
+        checkAndSubmitJobs(wpt,jobs)
         iterations += 1
         if iterations == 4:
             iterations = 0
-            checkandStartInstances(sql)
+            checkandStartInstances(jobs)
             sleep(10)

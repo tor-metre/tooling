@@ -5,12 +5,11 @@ from time import sleep
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from jobs import setFinished, setErrors
+from jobs import Jobs
 
 
 def downloadJob(wpt, i, output):
     return saveResults(wpt.getResult(i), output)
-
 
 def doJob(r):
     try:
@@ -25,15 +24,11 @@ def doJob(r):
         return None
 
 
-def getFinished(doJob, sql, db):
+def getFinished(doJob, jobs):
     # Get Pending where have been pending for >60 seconds
     # Check status with server
     # Return list
-    query = """
-        SELECT queue_id, submitted_time FROM jobs WHERE status='SUBMITTED' LIMIT 2000;
-    """
-    sql.execute(query)
-    results = list(sql.fetchall())
+    results = jobs.getSubmitted()
     print('Checking ' + str(len(results)) + ' new jobs')
     executor = ThreadPoolExecutor(max_workers=40)
     futures = executor.map(doJob, results)
@@ -48,11 +43,11 @@ def getFinished(doJob, sql, db):
             i, f = fu
             if f[0]:
                 success += 1
-                setFinished(i, sql, db)
+                jobs.setFinished(i)
             else:
                 set_errors += 1
-                setErrors(i, f[1], f[2], sql, db)
-    db.commit()
+                jobs.setErrors(i, f[1], f[2])
+    jobs.persist()
     print("Timestamp: " + str(datetime.now()))
     print("Errors or missing: " + str(errors_or_missing))
     print("Set Errors: " + str(set_errors))
@@ -62,8 +57,6 @@ def getFinished(doJob, sql, db):
 
 if __name__ == '__main__':
     while True:
-        db = sqlite3.connect('test.db')
-        db.row_factory = sqlite3.Row
-        sql = db.cursor()
-        getFinished(sql, db)
+        jobs = Jobs('test.db')
+        getFinished(doJob, jobs)
         sleep(1)
