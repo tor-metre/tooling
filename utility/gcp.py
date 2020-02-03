@@ -3,43 +3,44 @@
 
 from googleapiclient import discovery
 from utils import zoneFromName, rowToLocation
+import logging
 
 
 class GCP:
-
-    # project = "tor-metre-personal"
-    # source_disk_image = "firefox-works"
-    # machine_type = "zones/%s/machineTypes/n1-standard-2" % zone
     def __init__(self, project, source_disk, instance_type, state_file_storage):
         self.compute = discovery.build('compute', 'v1')
         self.project = project
         self.source_disk = source_disk
         self.instance_type = instance_type
         self.state_file_storage = state_file_storage
-        self.global_zones = self._fetchZones()
+        self.global_zones = self._fetch_zones()
+        self.logger = logging.getLogger("control" + __name__)
+        self.logger.debug("Initialised logging for GCP Object attached to project {p}".format(p=project))
 
-    def _fetchZones(self):
+    def _fetch_zones(self):
         request = self.compute.zones().list(project=self.project)
-        zoneNames = set()
+        zone_names = set()
         while request is not None:
             response = request.execute()
-            rZones = [z['id'] for z in response['items'] if z['deprecated']['state'] == "ACTIVE"]
-            zoneNames.update(rZones)
+            zone_names.update([z['id'] for z in response['items'] if z['deprecated']['state'] == "ACTIVE"])
             request = self.compute.zones().list_next(previous_request=request, previous_response=response)
-        return frozenset(zoneNames)
+        self.logger.debug("Fetched {zoneLen} zones from GCP API".format(zoneLen=len(zone_names)))
+        return frozenset(zone_names)
 
-    def getZones(self):
-        return self.global_zones
-
-    def _setZonesOptional(self, zones):
+    def _set_zones_if_empty(self, zones):
         if zones is None:
-            return self.getZones()
+            return self.get_zones()
         else:
-            assert(zones.issubset(self.getZones()))
+            assert (zones.issubset(self.get_zones()))
             return zones
 
-    def create_instance(self, zone, name, location, stateFile):
+    def get_zones(self):
+        return self.global_zones
+
+    def _create_instance(self, zone, name, location, state_file):
         assert (zone in self.global_zones)
+        self.logger.debug("Creating an instance in {zone} with {name} of type {type}".format(zone=zone, name=name,
+                                                                                             type=self.instance_type))
         machine_type_url = "zones/{zone}/machineTypes/{type}".format(zone=zone, type=self.instance_type)
         image_url = 'projects/{project}/global/images/{image}'.format(project=self.project, image=self.source_disk)
         permission_url = 'https://www.googleapis.com/auth/'
@@ -63,7 +64,7 @@ class GCP:
                     'value': location
                 }, {
                     'key': 'stateFile',
-                    'value': stateFile
+                    'value': state_file
                 }]
             }
         }
@@ -72,29 +73,32 @@ class GCP:
             zone=zone,
             body=config).execute()
 
-    def newInstance(self, zone, browser, i):
+    def new_instance(self, zone, browser, i):
         name = rowToLocation({
             'region': zone,
             'browser': browser,
             'id': i
         })
-        stateFile = "gs://hungry-serpent//{id}.state".format(id=i)
-        return self.create_instance(zone, name, name, stateFile)
+        state_file = "gs://hungry-serpent//{id}.state".format(id=i)
+        return self._create_instance(zone, name, name, state_file)
 
-    def startInstance(self, name):
+    def start_instance(self, name):
+        self.logger.debug("Starting instance {name}".format(name=name))
         zone = zoneFromName(name)
         return self.compute.instances().start(project=self.project, zone=zone, instance=name).execute()
 
-    def stopInstance(self, name):
+    def stop_instance(self, name):
+        self.logger.debug("Stopping instance {name}".format(name=name))
         zone = zoneFromName(name)
         return self.compute.instances().stop(project=self.project, zone=zone, instance=name).execute()
 
     def delete_instance(self, name):
+        self.logger.debug("Deleting instance {name}".format(name=name))
         zone = zoneFromName(name)
         return self.compute.instances().delete(project=self.project, zone=zone, instance=name).execute()
 
-    def getInstances(self, zones=None):
-        zones = self._setZonesOptional(zones)
+    def get_instances(self, zones=None):
+        zones = self._set_zones_if_empty(zones)
         results = list()
         for zone in zones:
             request = self.compute.instances().list(project=self.project, zone=zone)
@@ -111,10 +115,12 @@ class GCP:
                         idict['stateFile'] = instance['metadata']['stateFile']
                     results.append(idict)
                 request = self.compute.instances().list_next(previous_request=request, previous_response=response)
+        self.logger.debug("Discovered {instanceLen} in {zoneLen} zones".format(
+            instanceLen=len(results), zoneLen=len(zones)))
         return results
 
-    def getActiveInstances(self, zones=None):
-        return [r for r in self.getInstances(zones) if r['status'] == 'RUNNING']
+    def get_active_instances(self, zones=None):
+        return [r for r in self.get_instances(zones) if r['status'] == 'RUNNING']
 
-    def getStoppedInstances(self, zones=None):
-        return [r for r in self.getInstances(zones) if r['status'] == 'TERMINATED']
+    def get_stopped_instances(self, zones=None):
+        return [r for r in self.get_instances(zones) if r['status'] == 'TERMINATED']

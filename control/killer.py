@@ -28,12 +28,12 @@ if __name__ == '__main__':
     jobs = Jobs('test.db')
     locations = getUpcomingJobLocations(wpt,jobs)
     print("There are "+str(len(locations))+" active locations")
-    instances = gcp.getActiveInstances()
+    instances = gcp.get_active_instances()
     for i in instances:
         if 'watchdog' in i['name'] or 'wpt-server' in i['name']:
             continue
         if i['name'] not in locations:
             print("Stopping: "+i['name'])
-            gcp.stopInstance(i['name'])
+            gcp.stop_instance(i['name'])
 
 #TODO Also delete instances???

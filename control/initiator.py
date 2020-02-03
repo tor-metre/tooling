@@ -11,12 +11,12 @@ key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
 
 def checkandStartInstances(jobs,gcp):
-    zones = gcp.getZones()
-    AllInstances = gcp.getInstances(zones)
+    zones = gcp.get_zones()
+    AllInstances = gcp.get_instances(zones)
     AllInstances = set([x['name'] for x in AllInstances])
     PendingLocations = jobs.getPendingLocations()
-    ActiveInstances = gcp.getActiveInstances()
-    StoppedInstances = gcp.getStoppedInstances()
+    ActiveInstances = gcp.get_active_instances()
+    StoppedInstances = gcp.get_stopped_instances()
     ActiveLocations = set([x['name'] for x in ActiveInstances])
     StoppedLocations = set([x['name'] for x in StoppedInstances])
     print('Stopped locations: ' + str(StoppedLocations))
@@ -32,7 +32,7 @@ def checkandStartInstances(jobs,gcp):
                 r = locationToRow(s)
                 if s in AllInstances:
                     continue  # Do Nothing!
-                gcp.startInstance(r['region'], r['browser'], r['id'])
+                gcp.start_instance(r['region'], r['browser'], r['id'])
         except Exception as E:
             print("Error starting instance, continuing. Message: " + str(E))
     return True

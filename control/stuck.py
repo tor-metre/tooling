@@ -4,7 +4,7 @@ from gcp import GCP
 from wpt import WPT
 
 def getCandidates(wpt,gcp):
-    aliveInstances = set([x['name'] for x in gcp.getActiveInstances()])
+    aliveInstances = set([x['name'] for x in gcp.get_active_instances()])
     activeQueues = set(wpt.getActiveQueues())
     candidateStuck = aliveInstances - activeQueues
     actualStuck = set()
