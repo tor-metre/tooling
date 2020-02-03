@@ -14,7 +14,7 @@ class GCP:
         self.instance_type = instance_type
         self.state_file_storage = state_file_storage
         self.global_zones = self._fetch_zones()
-        self.logger = logging.getLogger("control" + __name__)
+        self.logger = logging.getLogger("utility." + __name__)
         self.logger.debug("Initialised logging for GCP Object attached to project {p}".format(p=project))
 
     def _fetch_zones(self):

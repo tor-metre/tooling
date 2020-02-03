@@ -39,6 +39,12 @@ class WPT:
         self.key = key
         self.locations_file = locations_file  # '/var/www/webpagetest/www/settings/locations.ini'
         self.temp_locations_file = 'newLocations.ini'
+        self.logger = logging.getLogger("utility." + __name__)
+        self.logger.debug("Initialised logging for WPT Object attached to server {s}".format(s=server))
+        if locations_file is None:
+            self.logger.debug("There is no location file set")
+        else:
+            self.logger.debug("Path to Location file:{p}".format(p=locations_file))
 
     def run_test(self, path, location, connectivity='Native'):
         """ Synchronously run a WPT test and return the output.
@@ -56,6 +62,9 @@ class WPT:
             connectivity - The connectivity profile to use for the test
             location - The location that should run the test.
         """
+        self.logger.debug("Synchronously running a test on {p} with location {l} and connectivity {c}".format(
+            p=path, l=location, c=connectivity)
+        )
         args = [
             'webpagetest',
             'test', path,
@@ -71,39 +80,39 @@ class WPT:
         ]
         return _get_buffered_json(args)
 
-    def submit_test(self, job, connectivity='Native'):
+    def submit_test(self, job):
         """ Asynchronously run a WPT test.
 
         This function calls the WPT javascript API and submits a test. It returns the result
         of the request as an object, including success code and a unique ID for the submitted
         job.
-
-        Positional Arguments:
-            job - A python dictionary containing a 'script' key with a string value
-            server - The WPT server to use
-            key - The API key for the WPT server
         """
-        location = utils.rowToLocation(job)
+        if "location" not in job.keys():
+            job["location"] = utils.rowToLocation(job)
+        self.logger.debug("Asynchronously running a test labelled {label} on {script} with location {location},"
+                          " {runs} runs, connectivity {connectivity}".format_map(job))
         args = [
             'webpagetest',
             'test', job['script'],
             '--server', self.server,
             '--key', self.key,
-            '--location', location,
-            '--runs', '1',
-            '--connectivity', connectivity,
-            '--label', job['script'],
+            '--location', job["location"],
+            '--runs', job["runs"],
+            '--connectivity', job["connectivity"],
+            '--label', job['label'],
             '--keepua',  # Don't change the useragent to indicate this is a bot
             '--first',  # Don't try for a repeat view
         ]
         return _get_buffered_json(args)
 
-    def run_and_save_test(self, path, location):
+    def run_and_save_test(self, path, location,connectivity):
         """ Runs a WPT test (synchronously), checks the result and saves it
         """
-        r = self.run_test(path, location)
+        r = self.run_test(path, location, connectivity)
         if not _successful_result(r):
-            logging.warning("Task Failed: " + r['statusText'])
+            logging.warning("Synchronous test failed for {path} on location {location} with connectivity"
+                            "{connectivity}. The result was {r} "
+                            .format(path=path, location=location, connectivity=connectivity, r=r))
         utils.saveResults(r)
 
     def get_testers(self):
@@ -112,6 +121,7 @@ class WPT:
                 '--server',
                 self.server
                 ]
+        self.logger.debug("Fetching the testers from the WPT Server")
         return _get_buffered_json(args)
 
     def get_locations(self):
@@ -123,6 +133,7 @@ class WPT:
                 '--server',
                 self.server
                 ]
+        self.logger.debug("Fetching the locations from the WPT Server")
         return _get_buffered_json(args)
 
     def get_job_queues(self):
@@ -139,6 +150,7 @@ class WPT:
                 q['response']['data']['location']['id']:
                     q['response']['data']['location']['PendingTests']['Total']
             }
+        self.logger.debug("There are {locationLen} queues on the server".format(locationLen=len(result.keys())))
         return result
 
     def get_active_job_queues(self):
@@ -147,6 +159,9 @@ class WPT:
     def set_server_locations(self, locations):
         assert (self.temp_locations_file is not None)
         assert (self.locations_file is not None)
+        self.logger.info("Updating the location file at {p} with {l} locations"
+                          .format(p=self.locations_file,l=len(locations)))
+        self.logger.debug("Using {t} as the temporary file".format(t=self.temp_locations_file))
         f = open(self.temp_locations_file, 'w')
         data = """[locations]
     1=Test_loc
@@ -190,6 +205,7 @@ class WPT:
                 '--server',
                 self.server
                 ]
+        self.logger.debug(f"Checking the status of test id: {test_id}")
         output = _get_buffered_json(args)
         if _successful_result(output):
             return True
@@ -197,6 +213,7 @@ class WPT:
             return False
 
     def get_test_result(self, test_id):
+        self.logger.debug(f"Fetching the results for test id: {test_id}")
         args = ['webpagetest',
                 'results',
                 test_id,
