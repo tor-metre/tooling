@@ -8,7 +8,7 @@ from jobs import Jobs
 
 
 def downloadJob(wpt, i, output):
-    return saveResults(wpt.getResult(i), output)
+    return saveResults(wpt.get_test_result(i), output)
 
 def doJob(r):
     try:

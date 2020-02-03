@@ -6,6 +6,31 @@ import subprocess
 from tempfile import SpooledTemporaryFile
 import utils
 import logging
+from typing import Sequence
+
+
+def _get_buffered_json(command: Sequence[str]):
+    temp_out_file = SpooledTemporaryFile(mode='w+')
+    # noinspection PyTypeChecker
+    result = subprocess.run(command, stdout=temp_out_file, bufsize=4096, check=True)
+    assert (result.returncode == 0)
+    temp_out_file.seek(0)  # Have to return to the start of the file to read it.
+    result = temp_out_file.read()
+    temp_out_file.close()
+    output = json.loads(result)  # String to JSON
+    return output
+
+
+def _successful_result(result):
+    """ Checks that a WPT test was successful.
+
+    Returns a boolean value indicating success or failure.
+
+    Parameters:
+        result - A result returned from the WPT API converted into a python object.
+
+    """
+    return result['statusCode'] == 200 and result['statusText'] == 'Test Complete'
 
 
 class WPT:
@@ -15,17 +40,7 @@ class WPT:
         self.locations_file = locations_file  # '/var/www/webpagetest/www/settings/locations.ini'
         self.temp_locations_file = 'newLocations.ini'
 
-    def _getBufferedJSON(self, command):
-        outT = SpooledTemporaryFile(mode='w+')
-        result = subprocess.run(command, stdout=outT, bufsize=4096, check=True)
-        assert(result.returncode == 0)
-        outT.seek(0)  # Have to return to the start of the file to read it.
-        result = outT.read()
-        outT.close()
-        output = json.loads(result)  # String to JSON
-        return output
-
-    def runTest(self, path, location, connectivity='Native'):
+    def run_test(self, path, location, connectivity='Native'):
         """ Synchronously run a WPT test and return the output.
 
         This function calls the WPT javascript API and submits a test. It polls
@@ -54,9 +69,9 @@ class WPT:
             '--first',  # Don't try for a repeat view
             '--poll', '5'  # How frequently to poll the web server for the result
         ]
-        return self._getBufferedJSON(args)
+        return _get_buffered_json(args)
 
-    def submitTest(self, job, connectivity='Native'):
+    def submit_test(self, job, connectivity='Native'):
         """ Asynchronously run a WPT test.
 
         This function calls the WPT javascript API and submits a test. It returns the result
@@ -81,36 +96,25 @@ class WPT:
             '--keepua',  # Don't change the useragent to indicate this is a bot
             '--first',  # Don't try for a repeat view
         ]
-        return self._getBufferedJSON(args)
+        return _get_buffered_json(args)
 
-    def successfulResult(self, result):
-        """ Checks that a WPT test was successful.
-
-        Returns a boolean value indicating success or failure.
-
-        Parameters:
-            result - A result returned from the WPT API converted into a python object.
-
-        """
-        return result['statusCode'] == 200 and result['statusText'] == 'Test Complete'
-
-    def runTask(self, path, location):
+    def run_and_save_test(self, path, location):
         """ Runs a WPT test (synchronously), checks the result and saves it
         """
-        r = self.runTest(path, location)
-        if not self.successfulResult(r):
+        r = self.run_test(path, location)
+        if not _successful_result(r):
             logging.warning("Task Failed: " + r['statusText'])
         utils.saveResults(r)
 
-    def getTesters(self):
+    def get_testers(self):
         args = ['webpagetest',
                 'testers',
                 '--server',
                 self.server
                 ]
-        return self._getBufferedJSON(args)
+        return _get_buffered_json(args)
 
-    def getQueueStatus(self):
+    def get_locations(self):
         # See which locations the server thinks are up.
         # Check all active instances appear on this list
         # Its okay if the server thinks some locations are up but the instances are down. It just hasn't realised yet.
@@ -119,19 +123,17 @@ class WPT:
                 '--server',
                 self.server
                 ]
-        return self._getBufferedJSON(args)
+        return _get_buffered_json(args)
 
-    def getQueuedJobs(self):
-        q = self.getQueueStatus()
+    def get_job_queues(self):
+        q = self.get_locations()
         if 'data' not in q['response'].keys():
             # No queues up!
             return dict()
         result = dict()
         if isinstance(q['response']['data']['location'], list):
             for v in q['response']['data']['location']:
-                l = v['id']
-                t = v['PendingTests']['Total']
-                result[l] = t
+                result[v['id']] = v['PendingTests']['Total']
         else:
             return {
                 q['response']['data']['location']['id']:
@@ -139,10 +141,10 @@ class WPT:
             }
         return result
 
-    def getActiveQueues(self):
-        return [k for (k, v) in self.getQueuedJobs().items() if v > 0]
+    def get_active_job_queues(self):
+        return [k for (k, v) in self.get_job_queues().items() if v > 0]
 
-    def setServerLocations(self, locations):
+    def set_server_locations(self, locations):
         assert (self.temp_locations_file is not None)
         assert (self.locations_file is not None)
         f = open(self.temp_locations_file, 'w')
@@ -154,9 +156,9 @@ class WPT:
     1=TESTLOCATIONCHANGEME
     """
         count = 1
-        for l in locations:
+        for location in locations:
             count += 1
-            data += str(count) + "=" + l + "\n"
+            data += str(count) + "=" + location + "\n"
         data += 'label="Test Location"\n'
         data += """
     [TESTLOCATIONCHANGEME]
@@ -164,13 +166,13 @@ class WPT:
     label="Test Location"
     
     """
-        for l in locations:
-            data += "[" + l + "]" + "\n"
-            if 'tor' in l:
+        for location in locations:
+            data += "[" + location + "]" + "\n"
+            if 'tor' in location:
                 data += "browser=Tor Browser\n"
             else:
                 data += "browser=Firefox\n"
-            data += 'label="' + l + '"\n'
+            data += 'label="' + location + '"\n'
             data += '\n'
         f.write(data)
         f.close()
@@ -181,24 +183,24 @@ class WPT:
         ]
         return subprocess.run(args)
 
-    def checkFinished(self, id):
+    def check_test_finished(self, test_id):
         args = ['webpagetest',
                 'status',
-                id,
+                test_id,
                 '--server',
                 self.server
                 ]
-        output = self._getBufferedJSON(args)
-        if int(output['statusCode']) == 200:
+        output = _get_buffered_json(args)
+        if _successful_result(output):
             return True
         else:
             return False
 
-    def getResult(self, id):
+    def get_test_result(self, test_id):
         args = ['webpagetest',
                 'results',
-                id,
+                test_id,
                 '--server',
                 self.server
                 ]
-        return self._getBufferedJSON(args)
+        return _get_buffered_json(args)

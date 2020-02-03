@@ -13,7 +13,7 @@ from jobs import Jobs
 def getUpcomingJobLocations(wpt,jobs):
     locations = jobs.getAwaitingLocations()
     print("There are " + str(len(locations)) + " locations with awaiting jobs")
-    activeQueues = set(wpt.getActiveQueues())
+    activeQueues = set(wpt.get_active_job_queues())
     print("There are " + str(len(activeQueues)) + " locations with active queues")
     upcomingActive = locations.union(activeQueues)
     print("There are " + str(len(upcomingActive)) + " unique needed locations")

@@ -39,7 +39,7 @@ def checkandStartInstances(jobs,gcp):
 
 def getUpcomingJobs(wpt,jobs, maxQueueLength=100):
     # Get a list of jobs which should be queued to fill up the buffers.
-    queued = wpt.getQueuedJobs()
+    queued = wpt.get_job_queues()
     toQueueJobs = list()
     for l, t in queued.items():
         print('Considering queue for ' + str(l))
@@ -61,7 +61,7 @@ def doJob(j):
     key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
     wpt = WPT(server,key)
     jobs = Jobs('test.db')
-    r = wpt.submitTest(j)
+    r = wpt.submit_test(j)
     if int(r['statusCode']) == 200:
         jobs.setJobQueued(j, r)
         return True
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     wpt = WPT(server,key,locations_file=locations_file)
     iterations = 0
     jobs = Jobs('test.db')
-    wpt.setServerLocations(jobs.getAllLocations())
+    wpt.set_server_locations(jobs.getAllLocations())
     checkandStartInstances(jobs,gcp)
     while True:
         checkAndSubmitJobs(wpt,jobs)
