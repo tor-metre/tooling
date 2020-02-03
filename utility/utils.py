@@ -25,16 +25,16 @@ def id_from_name(name):
 def location_to_dict(location):
     components = location.split(SEPERATOR)
     row = dict()
-    row['region'] = components[0]
+    row['zone'] = components[0]
     row['browser'] = components[1]
-    row['id'] = components[2]
+    row['agent_id'] = components[2]
     return row
 
 
 def dict_to_location(row):
     """ Turns a GCP Location into a WPT Location. 
     """
-    return row['region'] + SEPERATOR + row['browser'] + SEPERATOR + row['id']
+    return row['zone'] + SEPERATOR + row['browser'] + SEPERATOR + row['agent_id']
 
 
 def gather_scripts(folder, suffix='.wpt'):

@@ -1,157 +1,121 @@
 from utils import dict_to_location, location_to_dict
 from datetime import datetime
 import sqlite3
+import logging
 
-def escape(s):
-    return "'" + str(s) + "'"
 
 class Jobs:
 
     def __init__(self, db_path):
-        self.db = sqlite3.connect('db_path')
+        self.db = sqlite3.connect(db_path)
         self.db.row_factory = sqlite3.Row
         self.cursor = self.db.cursor()
-        self._createDB()
+        self.create_db()
+        self.logger = logging.getLogger("utility." + __name__)
+        self.logger.debug(f"Initialised logging for Jobs Object attached to database {db_path}")
 
-    def _createDB(self):
-        cmd = """
-            CREATE TABLE IF NOT EXISTS `jobs` (
-        	`region`	TEXT,
-        	`browser`	TEXT,
-        	`id`	TEXT,
-        	`script`	TEXT,
-        	`status`	TEXT,
-        	`queue_id`	TEXT UNIQUE,
-            `output_location`	TEXT,
-            `created_time` TEXT,
-        	`submitted_time`	TEXT,
-        	`finished_time`	TEXT,
-        	`step`	INTEGER,
-        	`iter`	INTEGER,
-        	PRIMARY KEY(`region`,`browser`,`id`,`script`,`step`,`iter`)
-            );"""
+    def create_db(self):
+        cmd = (""
+               "            CREATE TABLE IF NOT EXISTS `jobs` ("
+               "        	`job_id`	INTEGER PRIMARY KEY,"
+               "        	`experiment_id`	TEXT,"
+               "        	`wpt_id`	TEXT UNIQUE,"
+               "        	`status`	TEXT,"
+               "        	`zone`	TEXT,"
+               "        	`browser`	TEXT,"
+               "        	`agent_id`	TEXT,"
+               "        	`script`	TEXT,"
+               "            `output_location`	TEXT,"
+               "            `created_time` TEXT,"
+               "        	`submitted_time`	TEXT,"
+               "        	`finished_time`	TEXT"
+               "            );")
         self.cursor.execute(cmd)
         self.persist()
 
     def persist(self):
         self.db.commit()
 
-    def createJob(self,region, browser, id, script, step, iteration):
-        # Create a particular job row.
+    def create_job(self, zone, browser, agent_id, script, experiment_id):
         status = "AWAITING"
         t = datetime.now()
-        cmd = "INSERT INTO jobs "
-        cmd += " ( region,browser,id,script,step,iter,status,created_time )"
-        cmd += " VALUES ("
-        cmd += escape(region) + ", " + escape(browser) + ", " + escape(id) + ", " \
-               + escape(script) + ", " + escape(step) + ", " + escape(iteration) + ", " + escape(
-            status) + ', ' + escape(t)
-        cmd += ");"
-        # print(cmd)
+        cmd = f"INSERT INTO jobs (zone,browser,agent_id,experiment_id,script,status,created_time) " \
+              f"VALUES ('{zone}','{browser}','{agent_id}','{experiment_id}','{script}','{status}','{t}');"
         self.cursor.execute(cmd)
+        assert (self.cursor.lastrowid is not None)
+        self.logger.debug(f"Created job with id: {self.cursor.lastrowid}")
+        return self.cursor.lastrowid
 
-    def getAllLocations(self):
-        query = "SELECT region,browser,id FROM jobs GROUP BY region,browser,id"
-        self.cursor.execute(query)
-        return set([dict_to_location(r) for r in self.cursor.fetchall()])
-
-    def setJobQueued(self, job, result):
-        newStatus = 'SUBMITTED'
+    def set_job_as_submitted(self, job_id, result):
         submitted_time = datetime.now()
-        queue_id = result['data']['testId']
-        query = """
-            UPDATE jobs
-            SET submitted_time = '""" + str(submitted_time) + """',
-                queue_id = '""" + str(queue_id) + """',
-                status = '""" + str(newStatus) + """'
-            WHERE
-                region = '""" + str(job['region']) + """'
-                AND browser = '""" + str(job['browser']) + """'
-                AND id = '""" + str(job['id']) + """'
-                AND script = '""" + str(job['script']) + """'
-                AND step = '""" + str(job['step']) + """'
-                AND iter = '""" + str(job['iter']) + """'
-        ;"""
-        self.cursor.execute(query)
-        self.persist()
-        if self.cursor.rowcount != 1:
-            raise RuntimeError("Error performing upsert on " + str(job))
+        status = 'SUBMITTED'
+        wpt_id = result['data']['testId']
+        cmd = f"UPDATE jobs SET submitted_time = '{submitted_time}', wpt_id={wpt_id}, status='{status}'" \
+              f"WHERE job_id = {job_id};"
+        self.cursor.execute(cmd)
+        assert (self.cursor.rowcount == 1)
+        self.logger.debug(f"Set as submitted: {job_id}")
+        return True
 
-    def getPendingLocations(self):
-        # Do Query, get locations with pending jobs
-        # Remove any which are active in the server queue
-        query = """
-            SELECT region,browser,id FROM jobs WHERE status='AWAITING' GROUP BY region,browser,id
-        """
-        # print(query)
+    def set_job_as_error_submitting(self, job_id, result):
+        submitted_time = datetime.now()
+        status = 'ERROR_SUBMITTING'
+        cmd = f"UPDATE jobs SET submitted_time = '{submitted_time}', output_location={result}, status='{status}'" \
+              f"WHERE job_id = {job_id};"
+        self.cursor.execute(cmd)
+        assert (self.cursor.rowcount == 1)
+        self.logger.debug(f"Set as error on submitting: {job_id}")
+        return True
+
+    def set_job_as_error_testing(self, job_id, result):
+        finished_time = datetime.now()
+        status = 'ERROR_TESTING'
+        cmd = f"UPDATE jobs SET finished_time = '{finished_time}', output_location={result}, status='{status}'" \
+              f"WHERE job_id = {job_id};"
+        self.cursor.execute(cmd)
+        assert (self.cursor.rowcount == 1)
+        self.logger.debug(f"Set as error on testing: {job_id}")
+        return True
+
+    def set_job_as_finished(self, job_id, output_location):
+        finished_time = datetime.now()
+        status = 'FINISHED'
+        cmd = f"UPDATE jobs SET finished_time = '{finished_time}', output_location={output_location}," \
+              f" status='{status}' WHERE job_id = {job_id};"
+        self.cursor.execute(cmd)
+        assert (self.cursor.rowcount == 1)
+        self.logger.debug(f"Set as finished: {job_id}")
+        return True
+
+    def get_unique_job_locations(self):
+        query = "SELECT zone,browser,agent_id FROM jobs GROUP BY zone,browser,agent_id "
         self.cursor.execute(query)
-        results = self.cursor.fetchall()
+        results = set([dict_to_location(r) for r in self.cursor.fetchall()])
+        self.logger.debug(f'Found {len(results)} job locations')
+        return results
+
+    def get_pending_locations(self):
+        query = "SELECT zone,browser,agent_id FROM jobs WHERE status='AWAITING' GROUP BY zone,browser,agent_id"
+        self.cursor.execute(query)
         locations = set([dict_to_location(r) for r in self.cursor.fetchall()])
-        print('Found ' + str(len(locations)) + ' pending locations')
+        self.logger.debug(f'Found {len(locations)} job locations with pending jobs')
         return locations
 
-    def getJobs(self, location, status, limit, orderby="", ):
+    def get_awaiting_jobs(self, location, limit):
         row = location_to_dict(location)
-        cmd = """ SELECT * FROM jobs where region = '""" + row['region'] + """'
-        AND browser = '""" + row['browser'] + """'
-        AND id = '""" + row['id'] + """'
-        AND status = '""" + str(status) + "' " + orderby + """ LIMIT """ + str(limit) + ";"
-        # print(cmd)
+        cmd = f"SELECT job_id FROM jobs WHERE zone = '{row['zone']}' AND browser = '{row['browser']}' AND " \
+              f"agent_id = '{row['agent_id']}' AND status = '{'AWAITING'}' ORDER BY job_id LIMIT {str(limit)};"
         self.cursor.execute(cmd)
-        return list(self.cursor.fetchall())
+        results = list(self.cursor.fetchall())
+        self.logger.debug(f'Found {len(results)} jobs waiting to be submitted to {location}')
+        return results
 
-    def getAwaitingLocations(self):
-        cmd = """ SELECT region,browser,id FROM jobs WHERE status = 'AWAITING'   
-           GROUP BY region,browser,id
-           ;"""
-        self.cursor.execute(cmd)
-        return set([dict_to_location(r) for r in self.cursor.fetchall()])
-
-    def getSubmitted(self):
+    def get_submitted_jobs(self):
+        # TODO Should this be ordered or filtered by submitted time?
         query = """
-            SELECT queue_id, submitted_time FROM jobs WHERE status='SUBMITTED' LIMIT 2000;
+            SELECT wpt_id, submitted_time FROM jobs WHERE status='SUBMITTED' LIMIT 2000;
         """
         self.cursor.execute(query)
-        return list(self.cursor.fetchall())
-
-    def setJobFailed(self, job, result):
-        # Upsert submitted_time, output_location (JSON), queue_ID,status
-        newStatus = 'FAILED'
-        submitted_time = datetime.now()
-        query = """
-            UPDATE jobs
-            SET submitted_time = '""" + str(submitted_time) + """',
-                status = '""" + str(newStatus) + """',
-                output_location = '""" + str(result).replace("'", "''") + """'
-            WHERE
-                region = '""" + str(job['region']) + """'
-                AND browser = '""" + str(job['browser']) + """'
-                AND id = '""" + str(job['id']) + """'
-                AND script = '""" + str(job['script']) + """'
-                AND step = '""" + str(job['step']) + """'
-                AND iter = '""" + str(job['iter']) + """' ;"""
-        self.cursor.execute(query)
-        self.persist()
-        if self.cursor.rowcount != 1:
-            raise RuntimeError("Error performing upsert on " + str(job))
-
-    def setErrors(self, job_id, f, e):
-        query = """
-        UPDATE jobs
-            SET status = 'ERROR',
-                output_location = '""" + str(f) + ' ' + str(e).replace("'", "''") + """',
-                finished_time = '""" + str(datetime.now()) + """'
-            WHERE queue_id = '""" + str(job_id) + """';
-        """
-        self.cursor.execute(query)
-        return True
-
-    def setFinished(self, job_id):
-        query = """
-        UPDATE jobs
-            SET status = 'FINISHED',
-                finished_time = '""" + str(datetime.now()) + """'
-            WHERE queue_id = '""" + str(job_id) + """';
-        """
-        self.cursor.execute(query)
-        return True
+        results = list(self.cursor.fetchall())
+        self.logger.debug(f'Found {len(results)} submitted jobs')
+        return results
