@@ -11,7 +11,7 @@ from gcp import GCP
 from jobs import Jobs
 
 def getUpcomingJobLocations(wpt,jobs):
-    locations = jobs.getAwaitingLocations()
+    locations = jobs.get_awaiting_locations()
     print("There are " + str(len(locations)) + " locations with awaiting jobs")
     activeQueues = set(wpt.get_active_job_queues())
     print("There are " + str(len(activeQueues)) + " locations with active queues")

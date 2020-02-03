@@ -2,6 +2,7 @@ from time import sleep
 
 from gcp import GCP
 from wpt import WPT
+from tqdm import tqdm
 
 def getCandidates(wpt,gcp):
     aliveInstances = set([x['name'] for x in gcp.get_active_instances()])
@@ -22,7 +23,6 @@ if __name__ == '__main__':
     wpt = WPT(server,key)
     c1 = getCandidates(wpt,gcp)
     print("There are "+str(len(c1))+" candidates for being stuck")
-    from tqdm import tqdm
 
     for t in tqdm(range(0,300),desc='Waiting',disable=True):
         sleep(1)

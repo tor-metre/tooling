@@ -27,7 +27,7 @@ def getFinished(doJob, jobs):
     # Get Pending where have been pending for >60 seconds
     # Check status with server
     # Return list
-    results = jobs.getSubmitted()
+    results = jobs.get_submitted_jobs()
     print('Checking ' + str(len(results)) + ' new jobs')
     executor = ThreadPoolExecutor(max_workers=40)
     futures = executor.map(doJob, results)
