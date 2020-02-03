@@ -8,10 +8,10 @@
 
 import sqlite3
 from utils import rowToLocation
-from wpt import getActiveQueues
+from wpt import WPT
 from gcp import GCP
 
-def getUpcomingJobLocations(sql):
+def getUpcomingJobLocations(wpt,sql):
     cmd = """ SELECT region,browser,id FROM jobs WHERE status = 'AWAITING'   
    GROUP BY region,browser,id
    ;"""
@@ -20,7 +20,7 @@ def getUpcomingJobLocations(sql):
     for r in sql.fetchall():
         locations.add(rowToLocation(r))
     print("There are " + str(len(locations)) + " locations with awaiting jobs")
-    activeQueues = set(getActiveQueues())
+    activeQueues = set(wpt.getActiveQueues())
     print("There are " + str(len(activeQueues)) + " locations with active queues")
     upcomingActive = locations.union(activeQueues)
     print("There are " + str(len(upcomingActive)) + " unique needed locations")
@@ -32,7 +32,10 @@ sql = db.cursor()
 
 if __name__ == '__main__':
     gcp = GCP("tor-metre-personal", "firefox-works", "n1-standard-2", "None")
-    locations = getUpcomingJobLocations(sql)
+    server = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
+    key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
+    wpt = WPT(server,key)
+    locations = getUpcomingJobLocations(wpt,sql)
     print("There are "+str(len(locations))+" active locations")
     instances = gcp.getActiveInstances()
     for i in instances:

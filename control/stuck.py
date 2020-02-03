@@ -1,11 +1,11 @@
 from time import sleep
 
 from gcp import GCP
-from wpt import getActiveQueues
+from wpt import WPT
 
-def getCandidates(gcp):
+def getCandidates(wpt,gcp):
     aliveInstances = set([x['name'] for x in gcp.getActiveInstances()])
-    activeQueues = set(getActiveQueues())
+    activeQueues = set(wpt.getActiveQueues())
     candidateStuck = aliveInstances - activeQueues
     actualStuck = set()
     for c in candidateStuck:
@@ -17,14 +17,17 @@ def getCandidates(gcp):
 
 if __name__ == '__main__':
     gcp = GCP("tor-metre-personal", "firefox-works", "n1-standard-2", "None")
-    c1 = getCandidates(gcp)
+    server = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
+    key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
+    wpt = WPT(server,key)
+    c1 = getCandidates(wpt,gcp)
     print("There are "+str(len(c1))+" candidates for being stuck")
     from tqdm import tqdm
 
     for t in tqdm(range(0,300),desc='Waiting',disable=True):
         sleep(1)
 
-    c2 = getCandidates(gcp)
+    c2 = getCandidates(wpt,gcp)
     print("There are now "+str(len(c2))+" candidates for being stuck")
 
     c = c1.intersection(c2)
