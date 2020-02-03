@@ -2,161 +2,119 @@
 """
 
 from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
-from utils import zoneFromName, rowToLocation, locationToRow
-
-def create_instance(zone, name, location, stateFile):
-    compute = discovery.build('compute', 'v1')
-    project = "tor-metre-personal"
-    source_disk_image = "firefox-works"
-
-    # Configure the machine
-    machine_type = "zones/%s/machineTypes/n1-standard-2" % zone
-
-    config = {
-        'name': name,
-        'machineType': machine_type,
-        'scheduling' :
-        {
-            'preemptible' : True
-        },
-        # Specify the boot disk and the image to use as a source.
-        'disks': [
-            {
-                'boot': True,
-                'autoDelete': True,
-                'initializeParams': {
-                    'sourceImage': 'projects/'+project+'/global/images/'+source_disk_image,
-                }
-            }
-        ],
-
-        # Specify a network interface with NAT to access the public
-        # internet.
-        'networkInterfaces': [{
-            'network': 'global/networks/default',
-            'accessConfigs': [
-                {'type': 'ONE_TO_ONE_NAT', 'name': 'External NAT'}
-            ]
-        }],
-
-        # Allow the instance to access cloud storage and logging.
-        'serviceAccounts': [{
-            'email': 'default',
-            'scopes': [
-                'https://www.googleapis.com/auth/devstorage.read_write',
-                'https://www.googleapis.com/auth/logging.write'
-            ]
-        }],
-
-        # Metadata is readable from the instance and allows you to
-        # pass configuration from deployment scripts to instances.
-        'metadata': {
-            'items': [{
-                'key': 'shutdown-script',
-                'value': "./shutdown.sh"
-            }, {
-                'key': 'location',
-                'value': location
-            }, {
-                'key': 'stateFile',
-                'value': stateFile
-            }]
-        }
-    }
-
-    return compute.instances().insert(
-        project=project,
-        zone=zone,
-        body=config).execute()
-# [END create_instance]
+from utils import zoneFromName, rowToLocation
 
 
-# [START delete_instance]
-def delete_instance(compute, project, zone, name):
-    return compute.instances().delete(
-        project=project,
-        zone=zone,
-        instance=name).execute()
-# [END delete_instance]
+class GCP:
 
-def getInstances(zones):
-    results = list()
-    for zone in zones:
-        credentials = GoogleCredentials.get_application_default()
-        service = discovery.build('compute', 'v1', credentials=credentials)
-        project = 'moz-fx-dev-djackson-torperf'
+    # project = "tor-metre-personal"
+    # source_disk_image = "firefox-works"
+    # machine_type = "zones/%s/machineTypes/n1-standard-2" % zone
+    def __init__(self, project, source_disk, instance_type, state_file_storage):
+        self.compute = discovery.build('compute', 'v1')
+        self.project = project
+        self.source_disk = source_disk
+        self.instance_type = instance_type
+        self.state_file_storage = state_file_storage
+        self.global_zones = self._fetchZones()
 
-        # The name of the zone for this request.
-        #zone = 'us-central1-a'  
-        request = service.instances().list(project=project, zone=zone)
+    def _fetchZones(self):
+        request = self.compute.zones().list(project=self.project)
+        zoneNames = set()
         while request is not None:
             response = request.execute()
-            for instance in response['items']:
-                idict = dict()
-                idict['name'] = instance['name']
-                idict['zone'] = zone 
-                idict['creation_time'] = instance['creationTimestamp']
-                idict['status'] = instance['status']
-                if 'location' in instance['metadata'].keys():
-                    idict['location'] = instance['metadata']['location']
-                    idict['stateFile'] = instance['metadata']['stateFile']
-                results.append(idict)
-            request = service.instances().list_next(previous_request=request, previous_response=response)
-    return results
+            rZones = [z['id'] for z in response['items'] if z['deprecated']['state'] == "ACTIVE"]
+            zoneNames.update(rZones)
+            request = self.compute.zones().list_next(previous_request=request, previous_response=response)
+        return frozenset(zoneNames)
 
+    def getZones(self):
+        return self.global_zones
 
-def getActiveInstances():
-    #Return a list of active GCE instances (that have been up for 60 seconds at least)
-    zones = ['us-central1-a']
-    results = getInstances(zones)
-    up = [r for r in results if r['status'] == 'RUNNING'] #TODO and r['creation_time']]
-    return up 
+    def _setZonesOptional(self, zones):
+        if zones is None:
+            return self.getZones()
+        else:
+            assert(zones.issubset(self.getZones()))
+            return zones
 
-def getStoppedInstances():
-    #Return a list of active GCE instances (that have been up for 60 seconds at least)
-    zones = ['us-central1-a']
-    results = getInstances(zones)
-    up = [r for r in results if r['status'] == 'TERMINATED'] #TODO and r['creation_time']]
-    return up 
+    def create_instance(self, zone, name, location, stateFile):
+        assert (zone in self.zoneNames)
+        machine_type_url = "zones/{zone}/machineTypes/{type}".format(zone=zone, type=self.instance_type)
+        image_url = 'projects/{project}/global/images/{image}'.format(project=self.project, image=self.source_disk)
+        permission_url = 'https://www.googleapis.com/auth/'
+        config = {
+            'name': name,
+            'machineType': machine_type_url,
+            'scheduling': {'preemptible': True},
+            'disks': [{'boot': True, 'autoDelete': True, 'initializeParams': {'sourceImage': image_url}}],
+            'networkInterfaces': [{'network': 'global/networks/default',
+                                   'accessConfigs': [{'type': 'ONE_TO_ONE_NAT', 'name': 'External NAT'}]
+                                   }],
+            'serviceAccounts': [{'email': 'default',
+                                 'scopes': [permission_url + 'devstorage.read_write', permission_url + 'logging.write']
+                                 }],
+            'metadata': {
+                'items': [{
+                    'key': 'shutdown-script',
+                    'value': "./shutdown.sh"
+                }, {
+                    'key': 'location',
+                    'value': location
+                }, {
+                    'key': 'stateFile',
+                    'value': stateFile
+                }]
+            }
+        }
+        return self.compute.instances().insert(
+            project=self.project,
+            zone=zone,
+            body=config).execute()
 
-def startInstance(zone,browser,i):
-    #Start an instance
-    #Handle the case where the instance already exists!
-    name = rowToLocation({
-        'region' : zone,
-        'browser' : browser,
-        'id' : i
-    })
-    stateFile = "gs://hungry-serpent//"+str(i)+'.state'
-    return create_instance(zone,name,name,stateFile)
+    def newInstance(self, zone, browser, i):
+        name = rowToLocation({
+            'region': zone,
+            'browser': browser,
+            'id': i
+        })
+        stateFile = "gs://hungry-serpent//{id}.state".format(id=i)
+        return self.create_instance(zone, name, name, stateFile)
 
-def restartInstance(zone,name):
-    credentials = GoogleCredentials.get_application_default()
-    service = discovery.build('compute', 'v1', credentials=credentials)
-    project = 'moz-fx-dev-djackson-torperf'
-    request = service.instances().start(project=project, zone=zone, instance=name)
-    response = request.execute()
+    def startInstance(self, name):
+        zone = zoneFromName(name)
+        return self.compute.instances().start(project=self.project, zone=zone, instance=name).execute()
 
-def stopInstance(name):
-    credentials = GoogleCredentials.get_application_default()
-    service = discovery.build('compute', 'v1', credentials=credentials)
-    # Project ID for this request.
-    project = 'moz-fx-dev-djackson-torperf' 
-    # The name of the zone for this request.
-    zone = zoneFromName(name)
-    # Name of the instance resource to stop.
-    request = service.instances().stop(project=project, zone=zone, instance=name)
-    response = request.execute()
+    def stopInstance(self, name):
+        zone = zoneFromName(name)
+        return self.compute.instances().stop(project=self.project, zone=zone, instance=name).execute()
 
+    def delete_instance(self, name):
+        zone = zoneFromName(name)
+        return self.compute.instances().delete(project=self.project, zone=zone, instance=name).execute()
 
-def deleteInstance(name):
-    credentials = GoogleCredentials.get_application_default()
-    service = discovery.build('compute', 'v1', credentials=credentials)
-    # Project ID for this request.
-    project = 'moz-fx-dev-djackson-torperf' 
-    # The name of the zone for this request.
-    zone = zoneFromName(name)
-    # Name of the instance resource to stop.
-    request = service.instances().delete(project=project, zone=zone, instance=name)
-    response = request.execute()
+    def getInstances(self, zones=None):
+        zones = self._setZonesOptional(zones)
+        results = list()
+        for zone in zones:
+            request = self.compute.instances().list(project=self.project, zone=zone)
+            while request is not None:
+                response = request.execute()
+                for instance in response['items']:
+                    idict = dict()
+                    idict['name'] = instance['name']
+                    idict['zone'] = zone
+                    idict['creation_time'] = instance['creationTimestamp']
+                    idict['status'] = instance['status']
+                    if 'location' in instance['metadata'].keys():
+                        idict['location'] = instance['metadata']['location']
+                        idict['stateFile'] = instance['metadata']['stateFile']
+                    results.append(idict)
+                request = self.compute.instances().list_next(previous_request=request, previous_response=response)
+        return results
+
+    def getActiveInstances(self, zones=None):
+        return [r for r in self.getInstances(zones) if r['status'] == 'RUNNING']
+
+    def getStoppedInstances(self, zones=None):
+        return [r for r in self.getInstances(zones) if r['status'] == 'TERMINATED']

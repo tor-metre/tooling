@@ -9,7 +9,7 @@
 import sqlite3
 from utils import rowToLocation
 from wpt import getActiveQueues
-from gcp import getActiveInstances,stopInstance
+from gcp import GCP
 
 def getUpcomingJobLocations(sql):
     cmd = """ SELECT region,browser,id FROM jobs WHERE status = 'AWAITING'   
@@ -31,14 +31,15 @@ db.row_factory = sqlite3.Row
 sql = db.cursor()
 
 if __name__ == '__main__':
+    gcp = GCP("tor-metre-personal", "firefox-works", "n1-standard-2", "None")
     locations = getUpcomingJobLocations(sql)
     print("There are "+str(len(locations))+" active locations")
-    instances = getActiveInstances()
+    instances = gcp.getActiveInstances()
     for i in instances:
         if 'watchdog' in i['name'] or 'wpt-server' in i['name']:
             continue
         if i['name'] not in locations:
             print("Stopping: "+i['name'])
-            stopInstance(i['name'])
+            gcp.stopInstance(i['name'])
 
 #TODO Also delete instances???
