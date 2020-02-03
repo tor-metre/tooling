@@ -8,6 +8,7 @@
 
 from wpt import WPT
 from gcp import GCP
+from jobs import Jobs
 
 def getUpcomingJobLocations(wpt,jobs):
     locations = jobs.getAwaitingLocations()
@@ -25,7 +26,7 @@ if __name__ == '__main__':
     key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
     wpt = WPT(server,key)
     jobs = Jobs('test.db')
-    locations = getUpcomingJobLocations(wpt,jkobs)
+    locations = getUpcomingJobLocations(wpt,jobs)
     print("There are "+str(len(locations))+" active locations")
     instances = gcp.getActiveInstances()
     for i in instances:

@@ -34,7 +34,7 @@ if __name__ == '__main__':
     print("There are "+str(len(c))+" candidates apparently stuck both times")
 
     for l in tqdm(c,desc="Deleting apparently stuck instances",disable=True):
-        gcp.deleteInstance(l)
+        gcp.delete_instance(l)
 
 
 

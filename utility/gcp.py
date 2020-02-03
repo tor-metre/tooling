@@ -39,7 +39,7 @@ class GCP:
             return zones
 
     def create_instance(self, zone, name, location, stateFile):
-        assert (zone in self.zoneNames)
+        assert (zone in self.global_zones)
         machine_type_url = "zones/{zone}/machineTypes/{type}".format(zone=zone, type=self.instance_type)
         image_url = 'projects/{project}/global/images/{image}'.format(project=self.project, image=self.source_disk)
         permission_url = 'https://www.googleapis.com/auth/'

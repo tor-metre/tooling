@@ -5,7 +5,7 @@ from glob import glob
 import json
 import bz2
 import os
-import urllib3
+import urllib.request
 
 def getLocation(region,browser,id):
     """ Turns a GCP Location into a WPT Location
@@ -119,7 +119,7 @@ def saveResults(result,outFolder='out'):
         from urllib.error import HTTPError
         fname = 'R'+str(rnum)+'S'+str(snum)+'.jpg'
         try:
-            urllib3.urlretrieve(u,filename=folder+'/'+fname)
+            urllib.request.urlretrieve(u,filename=folder+'/'+fname)
         except HTTPError as E:
             print('HTTP Error: '+str(E))
             #TODO How to handle / persist this gracefully!?

@@ -61,7 +61,7 @@ def doJob(j):
     key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
     wpt = WPT(server,key)
     jobs = Jobs('test.db')
-    r = wpt.submitTest(j, wptserver, key)
+    r = wpt.submitTest(j)
     if int(r['statusCode']) == 200:
         jobs.setJobQueued(j, r)
         return True
@@ -102,5 +102,5 @@ if __name__ == '__main__':
         iterations += 1
         if iterations == 4:
             iterations = 0
-            checkandStartInstances(jobs)
+            checkandStartInstances(jobs,gcp)
             sleep(10)

@@ -1,9 +1,10 @@
-from wpt import getQueueStatus
+from wpt import WPT
 
 wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
-qu = getQueueStatus(wptserver)
+wpt = WPT(wptserver,key)
+qu = wpt.getQueueStatus()
 
 count = 0
 count2 = 0

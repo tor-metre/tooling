@@ -1,6 +1,5 @@
 from wpt import WPT
 from utils import saveResults
-import sqlite3
 from time import sleep
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
