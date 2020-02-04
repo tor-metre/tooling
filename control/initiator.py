@@ -9,34 +9,6 @@ from time import sleep
 wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
-
-def checkandStartInstances(jobs,gcp):
-    zones = gcp.get_zones()
-    AllInstances = gcp.get_instances(zones)
-    AllInstances = set([x['name'] for x in AllInstances])
-    PendingLocations = jobs.get_pending_locations()
-    ActiveInstances = gcp.get_active_instances()
-    StoppedInstances = gcp.get_stopped_instances()
-    ActiveLocations = set([x['name'] for x in ActiveInstances])
-    StoppedLocations = set([x['name'] for x in StoppedInstances])
-    print('Stopped locations: ' + str(StoppedLocations))
-    ToStart = PendingLocations - ActiveLocations
-    print('Identified ' + str(len(ToStart)) + ' instances to start')
-    for s in ToStart:
-        try:
-            if s in StoppedLocations:
-                print("Restarting instance " + str(s))
-                gcp.restartInstance(zone_from_name(s), s)
-            else:
-                print("Starting instance " + str(s))
-                r = location_to_dict(s)
-                if s in AllInstances:
-                    continue  # Do Nothing!
-                gcp.start_instance(r['region'], r['browser'], r['id'])
-        except Exception as E:
-            print("Error starting instance, continuing. Message: " + str(E))
-    return True
-
 def getUpcomingJobs(wpt,jobs, maxQueueLength=100):
     # Get a list of jobs which should be queued to fill up the buffers.
     queued = wpt.get_job_queues()
@@ -94,11 +66,6 @@ if __name__ == '__main__':
     iterations = 0
     jobs = Jobs('test.db')
     wpt.set_server_locations(jobs.get_unique_job_locations())
-    checkandStartInstances(jobs,gcp)
     while True:
         checkAndSubmitJobs(wpt,jobs)
-        iterations += 1
-        if iterations == 4:
-            iterations = 0
-            checkandStartInstances(jobs,gcp)
-            sleep(10)
+

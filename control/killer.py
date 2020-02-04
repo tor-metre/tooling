@@ -28,7 +28,7 @@ if __name__ == '__main__':
     jobs = Jobs('test.db')
     locations = getUpcomingJobLocations(wpt,jobs)
     print("There are "+str(len(locations))+" active locations")
-    instances = gcp.get_active_instances()
+    instances = gcp.get_running_instances()
     for i in instances:
         if 'watchdog' in i['name'] or 'wpt-server' in i['name']:
             continue

@@ -7,6 +7,7 @@ import logging
 class Jobs:
 
     def __init__(self, db_path):
+        self.db_path = db_path
         self.db = sqlite3.connect(db_path)
         self.db.row_factory = sqlite3.Row
         self.cursor = self.db.cursor()
@@ -104,7 +105,7 @@ class Jobs:
     def get_awaiting_jobs(self, location, limit):
         row = location_to_dict(location)
         cmd = f"SELECT job_id FROM jobs WHERE zone = '{row['zone']}' AND browser = '{row['browser']}' AND " \
-              f"agent_id = '{row['agent_id']}' AND status = '{'AWAITING'}' ORDER BY job_id LIMIT {str(limit)};"
+              f"agent_id = '{row['agent_id']}' AND status = '{'AWAITING'}' ORDER BY job_id ASC LIMIT {str(limit)};"
         self.cursor.execute(cmd)
         results = list(self.cursor.fetchall())
         self.logger.debug(f'Found {len(results)} jobs waiting to be submitted to {location}')

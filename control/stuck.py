@@ -5,7 +5,7 @@ from wpt import WPT
 from tqdm import tqdm
 
 def getCandidates(wpt,gcp):
-    aliveInstances = set([x['name'] for x in gcp.get_active_instances()])
+    aliveInstances = set([x['name'] for x in gcp.get_running_instances()])
     activeQueues = set(wpt.get_active_job_queues())
     candidateStuck = aliveInstances - activeQueues
     actualStuck = set()

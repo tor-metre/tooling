@@ -2,7 +2,7 @@
 """
 
 from googleapiclient import discovery
-from utils import zone_from_name, dict_to_location
+from utils import zone_from_name, dict_to_location, location_to_dict
 import logging
 
 
@@ -75,9 +75,9 @@ class GCP:
 
     def new_instance(self, zone, browser, i):
         name = dict_to_location({
-            'region': zone,
+            'zone': zone,
             'browser': browser,
-            'id': i
+            'agent_id': i
         })
         state_file = "gs://hungry-serpent//{id}.state".format(id=i)
         return self._create_instance(zone, name, name, state_file)
@@ -119,8 +119,44 @@ class GCP:
             instanceLen=len(results), zoneLen=len(zones)))
         return results
 
-    def get_active_instances(self, zones=None):
-        return [r for r in self.get_instances(zones) if r['status'] == 'RUNNING']
+    def get_running_instances(self, zones=None, instances=None):
+        if instances is None:
+            instances = self.get_instances(zones)
+        return [r for r in instances if r['status'] == 'RUNNING']
 
-    def get_stopped_instances(self, zones=None):
-        return [r for r in self.get_instances(zones) if r['status'] == 'TERMINATED']
+    def get_stopped_instances(self, zones=None, instances=None):
+        if instances is None:
+            instances = self.get_instances(zones)
+        return [r for r in instances if r['status'] == 'TERMINATED']
+
+    def activate_instances(self, names, instances=None):
+        initial_size = len(names)
+        self.logger.debug(f"Attempting to activate {initial_size} instances.")
+        names = set(names)
+        if instances is None:
+            instances = self.get_instances()
+        to_restart = set()
+        for i in instances:
+            if i['name'] in names:
+                if i['status'] == 'TERMINATED':
+                    to_restart.add(i['name'])
+                names.remove(i['name'])
+        self.logger.debug(f"Restarting {len(to_restart)} instances")
+        for t in to_restart:
+            self.start_instance(t)
+        self.logger.debug(f"Creating {len(names)} instances")
+        for n in names:
+            r = location_to_dict(n)
+            self.new_instance(r['zone'], r['browser'], r['agent_id'])
+        self.logger.debug(f"{initial_size} instances were in transitional state(s) and ignored.")
+
+    def deactivate_instances(self,names,instances=None):
+        if instances is None:
+            instances = self.get_instances()
+        stopped = 0
+        for i in instances:
+            if i['name'] in names and i['status'] == "RUNNING":
+                self.stop_instance(i['name'])
+                stopped += 1
+        self.logger.debug(f"Deactivated {stopped} instance(s) out of {len(names)} requested")
+
