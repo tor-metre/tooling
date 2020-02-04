@@ -89,7 +89,7 @@ class WPT:
         """
         if "location" not in job.keys():
             job["location"] = utils.dict_to_location(job)
-        self.logger.debug("Asynchronously running a test labelled {label} on {script} with location {location},"
+        self.logger.debug("Asynchronously running a test labelled {job_id} on {script} with location {location},"
                           " {runs} runs, connectivity {connectivity}".format_map(job))
         args = [
             'webpagetest',
@@ -99,11 +99,16 @@ class WPT:
             '--location', job["location"],
             '--runs', job["runs"],
             '--connectivity', job["connectivity"],
-            '--label', job['label'],
+            '--label', job['job_id'],
             '--keepua',  # Don't change the useragent to indicate this is a bot
             '--first',  # Don't try for a repeat view
         ]
-        return _get_buffered_json(args)
+        result = _get_buffered_json(args)
+        if _successful_result(result):
+            queue_id = result['data']['testId']
+            return True, queue_id
+        else:
+            return False, "ERROR MESSAGE NOT YET IMPLEMENTED"  # TODO return the error from the response
 
     def run_and_save_test(self, path, location,connectivity):
         """ Runs a WPT test (synchronously), checks the result and saves it

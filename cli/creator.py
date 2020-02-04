@@ -10,7 +10,8 @@ def generate_jobs(jobs, regions, browsers, ids, scripts, reps, experiment_id):
                 for _ in reps:
                     step = 0
                     for s in scripts.values():
-                        jobs.create_job(r, b, i, s, experiment_id)
+                        #TODO Make Dict
+                        jobs.create_job(r, b, i, s, experiment_id,1)
                         step += 1 
                         total += 1
     jobs.persist()

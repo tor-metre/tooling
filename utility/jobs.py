@@ -23,9 +23,11 @@ class Jobs:
                "        	`wpt_id`	TEXT UNIQUE,"
                "        	`status`	TEXT,"
                "        	`zone`	TEXT,"
+                "        	`connectivity`	TEXT,"
                "        	`browser`	TEXT,"
                "        	`agent_id`	TEXT,"
                "        	`script`	TEXT,"
+               "        	`runs`	TEXT,"
                "            `output_location`	TEXT,"
                "            `created_time` TEXT,"
                "        	`submitted_time`	TEXT,"
@@ -37,20 +39,27 @@ class Jobs:
     def persist(self):
         self.db.commit()
 
-    def create_job(self, zone, browser, agent_id, script, experiment_id):
+    def create_job(self, job):
         status = "AWAITING"
         t = datetime.now()
-        cmd = f"INSERT INTO jobs (zone,browser,agent_id,experiment_id,script,status,created_time) " \
-              f"VALUES ('{zone}','{browser}','{agent_id}','{experiment_id}','{script}','{status}','{t}');"
+        cmd = f"INSERT INTO jobs (zone,browser,agent_id,experiment_id,script,status,runs,connectivity,created_time) " \
+              f"VALUES ('{job['zone']}'," \
+              f"'{job['browser']}'," \
+              f"'{job['agent_id']}'," \
+              f"'{job['experiment_id']}'," \
+              f"'{job['script']}'," \
+              f"'{job['status']}'," \
+              f"'{job['runs']}'," \
+              f"'{job['connectivity']}'" \
+              f"'{t}');"
         self.cursor.execute(cmd)
         assert (self.cursor.lastrowid is not None)
         self.logger.debug(f"Created job with id: {self.cursor.lastrowid}")
         return self.cursor.lastrowid
 
-    def set_job_as_submitted(self, job_id, result):
+    def set_job_as_submitted(self, job_id, wpt_id):
         submitted_time = datetime.now()
         status = 'SUBMITTED'
-        wpt_id = result['data']['testId']
         cmd = f"UPDATE jobs SET submitted_time = '{submitted_time}', wpt_id={wpt_id}, status='{status}'" \
               f"WHERE job_id = {job_id};"
         self.cursor.execute(cmd)
@@ -104,10 +113,13 @@ class Jobs:
 
     def get_awaiting_jobs(self, location, limit):
         row = location_to_dict(location)
-        cmd = f"SELECT job_id FROM jobs WHERE zone = '{row['zone']}' AND browser = '{row['browser']}' AND " \
+        cmd = f"SELECT job_id,experiment_id,script,status,runs,connectivity FROM jobs WHERE zone = '{row['zone']}' " \
+              f"AND browser = '{row['browser']}' AND " \
               f"agent_id = '{row['agent_id']}' AND status = '{'AWAITING'}' ORDER BY job_id ASC LIMIT {str(limit)};"
         self.cursor.execute(cmd)
         results = list(self.cursor.fetchall())
+        for r in results:
+            r['location'] = location
         self.logger.debug(f'Found {len(results)} jobs waiting to be submitted to {location}')
         return results
 
