@@ -3,7 +3,7 @@ from jobs import Jobs
 from wpt import WPT, successful_result
 import logging
 import time
-
+import configuration as cl
 
 def update_job(wpt,jobs,job):
     job_id = job['wpt_id']
@@ -17,15 +17,13 @@ def update_job(wpt,jobs,job):
         return False
 
 
-def main():
-    jobs = Jobs('test.db')
-    server = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
-    key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
-    wpt = WPT(server, key)
+def main(config):
+    jobs = Jobs(config[cl.JOBS_DB_PATH_ENTRY])
+    wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY])
     while True:
         successful = 0
         failed = 0
-        candidate_finished = jobs.get_oldest_submitted_jobs()
+        candidate_finished = jobs.get_oldest_submitted_jobs(config['max-batch-size'])
         for c in candidate_finished:
             if update_job(wpt, jobs, c):
                 successful += 1
@@ -33,8 +31,25 @@ def main():
                 failed += 1
         logging.info(f"Checked {len(candidate_finished)} jobs. {successful} successfully finished, {failed} had errors "
                      f"during testing.")
-        time.sleep(60)
+        time.sleep(config['sleep-duration'])
 
 
-if __name__ == "main":
-    main()
+if __name__ == '__main__':
+    defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
+                cl.WPT_SERVER_URL_ENTRY: None,
+                cl.WPT_API_KEY_ENTRY: None,
+                cl.WPT_LOCATIONS_PATH_ENTRY: '/var/www/webpagetest/www/settings/locations.ini',
+                cl.JOBS_DB_PATH_ENTRY: 'jobs.sqlite'}
+    parser = cl.get_core_args_parser('Orchestrates the creation of jobs in WPT')
+    parser.add_argument("--sleep-duration", type=int, default=60,
+                        help='How many seconds to sleep before between checking the queues and inserting jobs')
+    parser.add_argument("--max-batch-size", type=int, default=100,
+                        help='Maximum number of jobs to check at a time')
+    cl.add_wpt_args(parser)
+    cl.add_wpt_location_args(parser)
+    cl.add_jobs_args(parser)
+    result, c = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
+    if result:
+        main(c)
+    else:
+        logging.critical("Invalid configuration. Quitting...")

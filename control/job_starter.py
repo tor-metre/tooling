@@ -2,6 +2,7 @@ from wpt import WPT
 from jobs import Jobs
 import logging
 import time
+import configuration as cl
 
 
 def get_jobs_to_queue(wpt, jobs, max_queue_length=100):
@@ -37,17 +38,31 @@ def submit_jobs(wpt, jobs, queue):
     logging.info(f"{len(queue)} jobs. {succeeded} succeeded. {error_submission} errors upon submission.")
 
 
-def main():
-    server = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
-    key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
-    locations_file = '/var/www/webpagetest/www/settings/locations.ini'
-    wpt = WPT(server, key, locations_file=locations_file)
-    jobs = Jobs('test.db')
+def main(config):
+    wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY], locations_file=cl.WPT_LOCATIONS_PATH_ENTRY)
+    jobs = Jobs(config[cl.JOBS_DB_PATH_ENTRY])
     while True:
         wpt.set_server_locations(jobs.get_unique_job_locations())
-        submit_jobs(wpt, jobs, get_jobs_to_queue(wpt, jobs, max_queue_length=100))
-        time.sleep(60)
+        submit_jobs(wpt, jobs, get_jobs_to_queue(wpt, jobs, max_queue_length=config['max-queue-length']))
+        time.sleep(config['sleep-duration'])
 
 
 if __name__ == '__main__':
-    main()
+    defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
+                cl.WPT_SERVER_URL_ENTRY: None,
+                cl.WPT_API_KEY_ENTRY: None,
+                cl.WPT_LOCATIONS_PATH_ENTRY: '/var/www/webpagetest/www/settings/locations.ini',
+                cl.JOBS_DB_PATH_ENTRY: 'jobs.sqlite'}
+    parser = cl.get_core_args_parser('Orchestrates the creation of jobs in WPT')
+    parser.add_argument("--sleep-duration", type=int, default=60,
+                        help='How many seconds to sleep before between checking the queues and inserting jobs')
+    parser.add_argument("--max-queue-length", type=int, default=100,
+                        help='Maximum length of the WPT job queue for each location')
+    cl.add_wpt_args(parser)
+    cl.add_wpt_location_args(parser)
+    cl.add_jobs_args(parser)
+    result, c = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
+    if result:
+        main(c)
+    else:
+        logging.critical("Invalid configuration. Quitting...")
