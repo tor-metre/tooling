@@ -3,6 +3,7 @@ from wpt import WPT
 from gcp import GCP
 from jobs import Jobs
 import time
+import configuration as cl
 
 
 def get_instances_to_start(gcp, jobs, all_instances=None):
@@ -41,6 +42,7 @@ def get_maybe_stuck_instances(wpt, gcp, all_instances=None):
 
 
 def main():
+    # TODO Finish the integration here
     server = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
     key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
     wpt = WPT(server, key)
@@ -79,4 +81,17 @@ def main():
 
 
 if __name__ == "main":
-    main()
+    defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
+                cl.WPT_SERVER_URL_ENTRY: None,
+                cl.WPT_API_KEY_ENTRY: None,
+                cl.JOBS_DB_PATH_ENTRY: 'jobs.sqlite'} #TODO - Add the GCP Instance Keys
+    parser = cl.get_core_args_parser('Handles instance creation, monitoring and shutdown on GCP')
+    parser.add_argument("--sleep-duration", type=int, default=180,
+                        help='How many seconds to sleep before between checking the queues and inserting jobs')
+    cl.get_full_args_parser("Handles instance creation, monitoring and shutdown on GCP",wpt_location=False)
+    result, c = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
+    if result:
+        main(c)
+    else:
+        logging.critical("Invalid configuration. Quitting...")
+

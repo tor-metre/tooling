@@ -38,7 +38,6 @@ if __name__ == '__main__':
     defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
                 cl.WPT_SERVER_URL_ENTRY: None,
                 cl.WPT_API_KEY_ENTRY: None,
-                cl.WPT_LOCATIONS_PATH_ENTRY: '/var/www/webpagetest/www/settings/locations.ini',
                 cl.JOBS_DB_PATH_ENTRY: 'jobs.sqlite'}
     parser = cl.get_core_args_parser('Orchestrates the creation of jobs in WPT')
     parser.add_argument("--sleep-duration", type=int, default=60,

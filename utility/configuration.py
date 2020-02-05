@@ -6,14 +6,22 @@ import urllib.error
 import argparse
 
 WPT_SERVER_URL_ENTRY = "wpt-server-url"
-JOBS_DB_PATH_ENTRY = "jobs-db-path"
 WPT_API_KEY_ENTRY = "wpt-api-key"
 WPT_LOCATIONS_PATH_ENTRY = "wpt-locations-path"
+
+JOBS_DB_PATH_ENTRY = "jobs-db-path"
+
 GCP_CREDENTIALS_PATH_ENTRY = "gcp-credentials-path"
+GCP_PROJECT_NAME_ENTRY = "gcp-project-name"
+GCP_IMAGE_NAME_ENTRY = "gcp-image-name"
+GCP_INSTANCE_TYPE_ENTRY = "gcp-instance-type"
+GCP_STATE_FILE_DIR = 'gcp-state-dir'
+
 FILE_CONFIG_PATH_ENTRY = "file-config-path"
 
 
 def get_known_config_keys():
+    # TODO Add GCP Instance Keys
     return {WPT_SERVER_URL_ENTRY, JOBS_DB_PATH_ENTRY, WPT_API_KEY_ENTRY,
             WPT_LOCATIONS_PATH_ENTRY, GCP_CREDENTIALS_PATH_ENTRY}
 
@@ -55,6 +63,7 @@ def validate_config(config):
         if not os.path.isfile(config[GCP_CREDENTIALS_PATH_ENTRY]):
             logging.critical(f"GCP credentials file does not exist at {config[WPT_LOCATIONS_PATH_ENTRY]}")
             success = False
+    # TODO Can we easily validate any of the instance keys?
     return success
 
 
@@ -128,6 +137,9 @@ def add_gcp_args(parser):
                         dest=GCP_CREDENTIALS_PATH_ENTRY)
 
 
+def add_gcp_instance_args(parser):
+    # TODO Implement for each instance arg type
+
 def add_jobs_args(parser):
     parser.add_argument("--job-db", metavar='PATH', type=str, help="The path to the Job DB",
                         dest=JOBS_DB_PATH_ENTRY)
@@ -140,13 +152,15 @@ def get_core_args_parser(description):
     return parser
 
 
-def get_full_args_parser(description, wpt_location=False):
+def get_full_args_parser(description, wpt_location=False,gcp_instances=False):
     parser = get_core_args_parser(description)
     add_jobs_args(parser)
     add_gcp_args(parser)
     add_wpt_args(parser)
     if wpt_location:
         add_wpt_location_args(parser)
+    if gcp_instances:
+        add_gcp_instance_args(parser)
     return parser
 
 
