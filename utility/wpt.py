@@ -21,7 +21,7 @@ def _get_buffered_json(command: Sequence[str]):
     return output
 
 
-def _successful_result(result):
+def successful_result(result):
     """ Checks that a WPT test was successful.
 
     Returns a boolean value indicating success or failure.
@@ -104,7 +104,7 @@ class WPT:
             '--first',  # Don't try for a repeat view
         ]
         result = _get_buffered_json(args)
-        if _successful_result(result):
+        if successful_result(result):
             queue_id = result['data']['testId']
             return True, queue_id
         else:
@@ -114,7 +114,7 @@ class WPT:
         """ Runs a WPT test (synchronously), checks the result and saves it
         """
         r = self.run_test(path, location, connectivity)
-        if not _successful_result(r):
+        if not successful_result(r):
             logging.warning("Synchronous test failed for {path} on location {location} with connectivity"
                             "{connectivity}. The result was {r} "
                             .format(path=path, location=location, connectivity=connectivity, r=r))
@@ -212,7 +212,7 @@ class WPT:
                 ]
         self.logger.debug(f"Checking the status of test id: {test_id}")
         output = _get_buffered_json(args)
-        if _successful_result(output):
+        if successful_result(output):
             return True
         else:
             return False
