@@ -5,6 +5,7 @@ import logging
 
 
 class Jobs:
+    # WARNING - This class is NOT Thread Safe
 
     def __init__(self, db_path):
         self.db_path = db_path

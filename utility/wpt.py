@@ -34,6 +34,8 @@ def successful_result(result):
 
 
 class WPT:
+    # WARNING - This class is NOT Thread Safe
+
     def __init__(self, server, key, locations_file=None):
         self.server = server
         self.key = key

@@ -7,6 +7,8 @@ import logging
 
 
 class GCP:
+    # WARNING - This class is NOT Thread Safe
+
     def __init__(self, project, source_disk, instance_type, state_file_storage):
         self.compute = discovery.build('compute', 'v1')
         self.project = project
