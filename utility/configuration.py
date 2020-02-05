@@ -88,7 +88,10 @@ def get_config(fixed_config=None, default_config=None):
         if len(default_used) > 0:
             logging.warning(f"Default config values were used for the following config keys: f{default_used}")
         config = default_config.update(fixed_config)
-    return validate_config(config), config
+    if validate_config(config):
+        return True, config
+    else:
+        return False, None
 
 
 def get_file_config(file):
@@ -106,53 +109,53 @@ def get_file_config(file):
     return config
 
 
-def add_wpt_args(parser, defaults):
+def add_wpt_args(parser):
     parser.add_argument("--wpt-server", metavar='URL', type=str, help='The URL for the WPT Server',
-                        default=defaults.get(WPT_SERVER_URL_ENTRY, default=argparse.SUPPRESS))
+                        dest=WPT_SERVER_URL_ENTRY)
     parser.add_argument("--wpt-key", metavar='SECRET', type=str, help='The API Key for the WPT Server',
-                        default=defaults.get(WPT_API_KEY_ENTRY, default=argparse.SUPPRESS))
+                        dest=WPT_API_KEY_ENTRY)
     return parser
 
 
-def add_wpt_location_args(parser, defaults):
+def add_wpt_location_args(parser):
     parser.add_argument("--wpt-locations", metavar='PATH', type=str,
-                        default=defaults.get(WPT_LOCATIONS_PATH_ENTRY, default=argparse.SUPPRESS),
-                        help='The path to the locations.ini file for the WPT Server')
+                        help='The path to the locations.ini file for the WPT Server', dest=WPT_LOCATIONS_PATH_ENTRY)
     return parser
 
 
-def add_gcp_args(parser, defaults):
+def add_gcp_args(parser):
     parser.add_argument("--gcp-secret", metavar='PATH', type=str, help="The path to the credentials file for GCP",
-                        default=defaults.get(GCP_CREDENTIALS_PATH_ENTRY, default=argparse.SUPPRESS))
+                        dest=GCP_CREDENTIALS_PATH_ENTRY)
 
 
-def add_jobs_args(parser, defaults):
+def add_jobs_args(parser):
     parser.add_argument("--job-db", metavar='PATH', type=str, help="The path to the Job DB",
-                        default=defaults.get(JOBS_DB_PATH_ENTRY, default=argparse.SUPPRESS))
+                        dest=JOBS_DB_PATH_ENTRY)
 
 
-def get_core_args_parser(description, defaults):
-    parser = argparse.ArgumentParser(description=description)
+def get_core_args_parser(description):
+    parser = argparse.ArgumentParser(description=description, argument_default=argparse.SUPPRESS)
     parser.add_argument("--config-file", metavar='PATH', type=str, help="The path to the config file",
-                        default=defaults.get(FILE_CONFIG_PATH_ENTRY, default=argparse.SUPPRESS))
+                        dest=FILE_CONFIG_PATH_ENTRY)
     return parser
 
 
-def get_full_args_parser(description, defaults, wpt_location=False):
-    parser = get_core_args_parser(description, defaults)
-    add_jobs_args(parser, defaults)
-    add_gcp_args(parser, defaults)
-    add_wpt_args(parser, defaults)
+def get_full_args_parser(description, wpt_location=False):
+    parser = get_core_args_parser(description)
+    add_jobs_args(parser)
+    add_gcp_args(parser)
+    add_wpt_args(parser)
     if wpt_location:
-        add_wpt_location_args(parser, defaults)
+        add_wpt_location_args(parser)
     return parser
 
 
 """ 
 Typical usage:
-Set some defaults and a description
+Set some defaults and a description. If something is *required* but not known, set the default as None. 
 get a args parser (either full or with some subset). 
 customise it with any additional settings.
 Parse the arguments. 
 get_config with the arguments, then the defaults. 
+Check the result and use if it if successful
 """
