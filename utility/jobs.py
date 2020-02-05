@@ -124,11 +124,9 @@ class Jobs:
         self.logger.debug(f'Found {len(results)} jobs waiting to be submitted to {location}')
         return results
 
-    def get_oldest_submitted_jobs(self):
+    def get_oldest_submitted_jobs(self, limit):
         # TODO Order by submission time and ensure have been submitted for at least 300 seconds.
-        query = """
-            SELECT wpt_id FROM jobs WHERE status='SUBMITTED' LIMIT 2000;
-        """
+        query = f"SELECT wpt_id FROM jobs WHERE status='SUBMITTED' LIMIT {limit};"
         self.cursor.execute(query)
         results = list(self.cursor.fetchall())
         self.logger.debug(f'Found {len(results)} submitted jobs')
