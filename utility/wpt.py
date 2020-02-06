@@ -42,11 +42,11 @@ class WPT:
         self.locations_file = locations_file  # '/var/www/webpagetest/www/settings/locations.ini'
         self.temp_locations_file = 'newLocations.ini'
         self.logger = logging.getLogger("utility." + __name__)
-        self.logger.debug("Initialised logging for WPT Object attached to server {s}".format(s=server))
+        self.logger.debug(f"Initialised logging for WPT Object attached to server {server}")
         if locations_file is None:
             self.logger.debug("There is no location file set")
         else:
-            self.logger.debug("Path to Location file:{p}".format(p=locations_file))
+            self.logger.debug(f"Path to Location file:{locations_file}")
 
     def run_test(self, path, location, connectivity='Native'):
         """ Synchronously run a WPT test and return the output.
@@ -64,8 +64,8 @@ class WPT:
             connectivity - The connectivity profile to use for the test
             location - The location that should run the test.
         """
-        self.logger.debug("Synchronously running a test on {p} with location {l} and connectivity {c}".format(
-            p=path, l=location, c=connectivity)
+        self.logger.debug(
+            f"Synchronously running a test on {path} with location {location} and connectivity {connectivity}"
         )
         args = [
             'webpagetest',
@@ -112,14 +112,14 @@ class WPT:
         else:
             return False, "ERROR MESSAGE NOT YET IMPLEMENTED"  # TODO return the error from the response
 
-    def run_and_save_test(self, path, location,connectivity):
+    def run_and_save_test(self, path, location, connectivity):
         """ Runs a WPT test (synchronously), checks the result and saves it
         """
         r = self.run_test(path, location, connectivity)
         if not successful_result(r):
-            logging.warning("Synchronous test failed for {path} on location {location} with connectivity"
-                            "{connectivity}. The result was {r} "
-                            .format(path=path, location=location, connectivity=connectivity, r=r))
+            logging.warning(
+                f"Synchronous test failed for {path} on location {location} with connectivity{connectivity}. "
+                f"The result was {r} ")
         utils.save_result(r)
 
     def get_testers(self):
@@ -157,7 +157,7 @@ class WPT:
                 q['response']['data']['location']['id']:
                     q['response']['data']['location']['PendingTests']['Total']
             }
-        self.logger.debug("There are {locationLen} queues on the server".format(locationLen=len(result.keys())))
+        self.logger.debug(f"There are {len(result.keys())} queues on the server")
         return result
 
     def get_active_job_queues(self):
@@ -166,9 +166,8 @@ class WPT:
     def set_server_locations(self, locations):
         assert (self.temp_locations_file is not None)
         assert (self.locations_file is not None)
-        self.logger.info("Updating the location file at {p} with {l} locations"
-                          .format(p=self.locations_file,l=len(locations)))
-        self.logger.debug("Using {t} as the temporary file".format(t=self.temp_locations_file))
+        self.logger.info(f"Updating the location file at {self.locations_file} with {len(locations)} locations")
+        self.logger.debug(f"Using {self.temp_locations_file} as the temporary file")
         f = open(self.temp_locations_file, 'w')
         data = """[locations]
     1=Test_loc
