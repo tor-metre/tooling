@@ -1,11 +1,11 @@
-
 from jobs import Jobs
 from wpt import WPT, successful_result
 import logging
 import time
 import configuration as cl
 
-def update_job(wpt,jobs,job):
+
+def update_job(wpt, jobs, job):
     job_id = job['wpt_id']
     result = wpt.get_test_result(job_id)
     if successful_result(result):
@@ -47,8 +47,8 @@ if __name__ == '__main__':
     cl.add_wpt_args(parser)
     cl.add_wpt_location_args(parser)
     cl.add_jobs_args(parser)
-    result, c = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
-    if result:
-        main(c)
+    config_result, returned_config = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
+    if config_result:
+        main(returned_config)
     else:
         logging.critical("Invalid configuration. Quitting...")
