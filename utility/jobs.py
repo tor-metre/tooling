@@ -24,7 +24,7 @@ class Jobs:
                "        	`wpt_id`	TEXT UNIQUE,"
                "        	`status`	TEXT,"
                "        	`zone`	TEXT,"
-                "        	`connectivity`	TEXT,"
+               "        	`connectivity`	TEXT,"
                "        	`browser`	TEXT,"
                "        	`agent_id`	TEXT,"
                "        	`script`	TEXT,"
@@ -41,7 +41,7 @@ class Jobs:
         self.db.commit()
 
     def create_job(self, job):
-        status = "AWAITING"
+        new_status = "AWAITING"
         t = datetime.now()
         cmd = f"INSERT INTO jobs (zone,browser,agent_id,experiment_id,script,status,runs,connectivity,created_time) " \
               f"VALUES ('{job['zone']}'," \
@@ -49,7 +49,7 @@ class Jobs:
               f"'{job['agent_id']}'," \
               f"'{job['experiment_id']}'," \
               f"'{job['script']}'," \
-              f"'{job['status']}'," \
+              f"'{new_status}'," \
               f"'{job['runs']}'," \
               f"'{job['connectivity']}'" \
               f"'{t}');"

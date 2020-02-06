@@ -77,13 +77,13 @@ class GCP:
             zone=zone,
             body=config).execute()
 
-    def new_instance(self, zone, browser, id):
+    def new_instance(self, zone, browser, agent_id):
         name = dict_to_location({
             'zone': zone,
             'browser': browser,
-            'agent_id': id
+            'agent_id': agent_id
         })
-        state_file = f"gs://hungry-serpent//{id}.state"
+        state_file = f"gs://hungry-serpent//{agent_id}.state"
         return self._create_instance(zone, name, name, state_file)
 
     def start_instance(self, name):
@@ -109,15 +109,15 @@ class GCP:
             while request is not None:
                 response = request.execute()
                 for instance in response['items']:
-                    idict = dict()
-                    idict['name'] = instance['name']
-                    idict['zone'] = zone
-                    idict['creation_time'] = instance['creationTimestamp']
-                    idict['status'] = instance['status']
+                    instance_dict = dict()
+                    instance_dict['name'] = instance['name']
+                    instance_dict['zone'] = zone
+                    instance_dict['creation_time'] = instance['creationTimestamp']
+                    instance_dict['status'] = instance['status']
                     if 'location' in instance['metadata'].keys():
-                        idict['location'] = instance['metadata']['location']
-                        idict['stateFile'] = instance['metadata']['stateFile']
-                    results.append(idict)
+                        instance_dict['location'] = instance['metadata']['location']
+                        instance_dict['stateFile'] = instance['metadata']['stateFile']
+                    results.append(instance_dict)
                 request = self.compute.instances().list_next(previous_request=request, previous_response=response)
         self.logger.debug(f"Discovered {len(results)} in {len(zones)} zones")
         return results
@@ -153,7 +153,7 @@ class GCP:
             self.new_instance(r['zone'], r['browser'], r['agent_id'])
         self.logger.debug(f"{initial_size} instances were in transitional state(s) and ignored.")
 
-    def deactivate_instances(self,names,instances=None):
+    def deactivate_instances(self, names, instances=None):
         if instances is None:
             instances = self.get_instances()
         stopped = 0
@@ -162,4 +162,3 @@ class GCP:
                 self.stop_instance(i['name'])
                 stopped += 1
         self.logger.debug(f"Deactivated {stopped} instance(s) out of {len(names)} requested")
-
