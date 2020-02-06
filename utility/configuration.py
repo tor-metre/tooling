@@ -72,6 +72,7 @@ def get_config(fixed_config=None, default_config=None):
     :param default_config: Configuration options which will be overwritten if a config file is present
     :return: Boolean (whether the config is valid), the config as a dictionary
     """
+    # TODO Might be nice to auto fetch the wpt server key from its file if our server location is local host.
     if default_config is None:
         default_config = dict()
     if fixed_config is None:
