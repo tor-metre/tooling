@@ -45,7 +45,7 @@ def gather_scripts(folder, suffix='.wpt'):
         Suffix - The suffix for WPT script files. 
     """
     scripts = glob(folder + '/**/*' + suffix, recursive=True)
-    logging.debug("Discovered {lenScripts} test scripts in {folder}".format(lenScripts=len(scripts), folder=folder))
+    logging.debug(f"Discovered {len(scripts)} test scripts in {folder}")
     return {os.path.split(os.path.splitext(s)[0])[1]: s for s in scripts}
 
 
@@ -58,7 +58,7 @@ def gather_compressed_results(folder, suffix='.bz2'):
     """
     results = glob(folder + '/**/*' + suffix, recursive=True)
     logging.debug(
-        "Discovered {lenScripts} compressed results in {folder}".format(lenScripts=len(results), folder=folder))
+        f"Discovered {len(results)} compressed results in {folder}")
     return results
 
 
@@ -103,8 +103,7 @@ def save_result(result, results_folder='out'):
             continue
         for step_number, step_result in enumerate(run_result['firstView']['steps']):
             urls.append((run_number, step_number, step_result['images']['screenShot']))
-    logging.debug("Discovered {lenURLs} for {test_id} labelled {label}".format(
-        lenURLs=len(urls), test_id=test_id, label=label))
+    logging.debug(f"Discovered {len(urls)} for {test_id} labelled {label}")
     for run_number, step_number, url in urls:
         screenshot_name = 'R' + str(run_number) + 'S' + str(step_number) + '.jpg'
         try:
