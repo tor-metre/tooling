@@ -9,11 +9,8 @@ import logging
 class GCP:
     # WARNING - This class is NOT Thread Safe
 
-    def __init__(self, project, source_disk, instance_type, state_file_storage, credential_location=None):
-        if credential_location:
-            pass  # TODO - Implement loading credentials from a file.
-        else:
-            self.compute = discovery.build('compute', 'v1')
+    def __init__(self, project, source_disk, instance_type, state_file_storage):
+        self.compute = discovery.build('compute', 'v1')
         self.project = project
         self.source_disk = source_disk
         self.instance_type = instance_type

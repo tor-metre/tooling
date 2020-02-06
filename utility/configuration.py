@@ -11,7 +11,6 @@ WPT_LOCATIONS_PATH_ENTRY = "wpt-locations-path"
 
 JOBS_DB_PATH_ENTRY = "jobs-db-path"
 
-GCP_CREDENTIALS_PATH_ENTRY = "gcp-credentials-path"
 GCP_PROJECT_NAME_ENTRY = "gcp-project-name"
 GCP_IMAGE_NAME_ENTRY = "gcp-image-name"
 GCP_INSTANCE_TYPE_ENTRY = "gcp-instance-type"
@@ -22,7 +21,7 @@ FILE_CONFIG_PATH_ENTRY = "file-config-path"
 
 def get_known_config_keys():
     return {WPT_SERVER_URL_ENTRY, JOBS_DB_PATH_ENTRY, WPT_API_KEY_ENTRY,
-            WPT_LOCATIONS_PATH_ENTRY, GCP_CREDENTIALS_PATH_ENTRY, GCP_CREDENTIALS_PATH_ENTRY, GCP_PROJECT_NAME_ENTRY,
+            WPT_LOCATIONS_PATH_ENTRY, GCP_PROJECT_NAME_ENTRY,
             GCP_IMAGE_NAME_ENTRY, GCP_INSTANCE_TYPE_ENTRY, GCP_STATE_FILE_DIR}
 
 
@@ -62,10 +61,6 @@ def validate_config(config):
     if WPT_LOCATIONS_PATH_ENTRY in config:
         if not os.path.isfile(config[WPT_LOCATIONS_PATH_ENTRY]):
             logging.critical(f"WPT locations file does not exist at {config[WPT_LOCATIONS_PATH_ENTRY]}")
-            success = False
-    if GCP_CREDENTIALS_PATH_ENTRY in config:
-        if not os.path.isfile(config[GCP_CREDENTIALS_PATH_ENTRY]):
-            logging.critical(f"GCP credentials file does not exist at {config[WPT_LOCATIONS_PATH_ENTRY]}")
             success = False
     # TODO Can we easily validate any of the instance keys?
     return success
@@ -136,11 +131,6 @@ def add_wpt_location_args(parser):
     return parser
 
 
-def add_gcp_args(parser):
-    parser.add_argument("--gcp-secret", metavar='PATH', type=str, help="The path to the credentials file for GCP",
-                        dest=GCP_CREDENTIALS_PATH_ENTRY)
-
-
 def add_gcp_instance_args(parser):
     parser.add_argument("--gcp-project-name", metavar='NAME', type=str, help="The name of the GCP Project",
                         dest=GCP_PROJECT_NAME_ENTRY)
@@ -168,7 +158,6 @@ def get_core_args_parser(description):
 def get_full_args_parser(description, wpt_location=False, gcp_instances=False):
     parser = get_core_args_parser(description)
     add_jobs_args(parser)
-    add_gcp_args(parser)
     add_wpt_args(parser)
     if wpt_location:
         add_wpt_location_args(parser)
