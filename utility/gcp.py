@@ -20,7 +20,7 @@ class GCP:
         self.state_file_storage = state_file_storage
         self.global_zones = self._fetch_zones()
         self.logger = logging.getLogger("utility." + __name__)
-        self.logger.debug("Initialised logging for GCP Object attached to project {p}".format(p=project))
+        self.logger.debug(f"Initialised logging for GCP Object attached to project {project}")
 
     def _fetch_zones(self):
         request = self.compute.zones().list(project=self.project)
@@ -29,7 +29,7 @@ class GCP:
             response = request.execute()
             zone_names.update([z['id'] for z in response['items'] if z['deprecated']['state'] == "ACTIVE"])
             request = self.compute.zones().list_next(previous_request=request, previous_response=response)
-        self.logger.debug("Fetched {zoneLen} zones from GCP API".format(zoneLen=len(zone_names)))
+        self.logger.debug(f"Fetched {len(zone_names)} zones from GCP API")
         return frozenset(zone_names)
 
     def _set_zones_if_empty(self, zones):
@@ -44,10 +44,9 @@ class GCP:
 
     def _create_instance(self, zone, name, location, state_file):
         assert (zone in self.global_zones)
-        self.logger.debug("Creating an instance in {zone} with {name} of type {type}".format(zone=zone, name=name,
-                                                                                             type=self.instance_type))
-        machine_type_url = "zones/{zone}/machineTypes/{type}".format(zone=zone, type=self.instance_type)
-        image_url = 'projects/{project}/global/images/{image}'.format(project=self.project, image=self.source_disk)
+        self.logger.debug(f"Creating an instance in {zone} with {name} of type {self.instance_type}")
+        machine_type_url = f"zones/{zone}/machineTypes/{self.instance_type}"
+        image_url = f'projects/{self.project}/global/images/{self.source_disk}'
         permission_url = 'https://www.googleapis.com/auth/'
         config = {
             'name': name,
@@ -78,27 +77,27 @@ class GCP:
             zone=zone,
             body=config).execute()
 
-    def new_instance(self, zone, browser, i):
+    def new_instance(self, zone, browser, id):
         name = dict_to_location({
             'zone': zone,
             'browser': browser,
-            'agent_id': i
+            'agent_id': id
         })
-        state_file = "gs://hungry-serpent//{id}.state".format(id=i)
+        state_file = f"gs://hungry-serpent//{id}.state"
         return self._create_instance(zone, name, name, state_file)
 
     def start_instance(self, name):
-        self.logger.debug("Starting instance {name}".format(name=name))
+        self.logger.debug(f"Starting instance {name}")
         zone = zone_from_name(name)
         return self.compute.instances().start(project=self.project, zone=zone, instance=name).execute()
 
     def stop_instance(self, name):
-        self.logger.debug("Stopping instance {name}".format(name=name))
+        self.logger.debug(f"Stopping instance {name}")
         zone = zone_from_name(name)
         return self.compute.instances().stop(project=self.project, zone=zone, instance=name).execute()
 
     def delete_instance(self, name):
-        self.logger.debug("Deleting instance {name}".format(name=name))
+        self.logger.debug(f"Deleting instance {name}")
         zone = zone_from_name(name)
         return self.compute.instances().delete(project=self.project, zone=zone, instance=name).execute()
 
@@ -120,8 +119,7 @@ class GCP:
                         idict['stateFile'] = instance['metadata']['stateFile']
                     results.append(idict)
                 request = self.compute.instances().list_next(previous_request=request, previous_response=response)
-        self.logger.debug("Discovered {instanceLen} in {zoneLen} zones".format(
-            instanceLen=len(results), zoneLen=len(zones)))
+        self.logger.debug(f"Discovered {len(results)} in {len(zones)} zones")
         return results
 
     def get_running_instances(self, zones=None, instances=None):
