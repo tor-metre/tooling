@@ -41,14 +41,12 @@ def get_maybe_stuck_instances(wpt, gcp, all_instances=None):
     return set(possible_stuck)
 
 
-def main():
-    # TODO Finish the integration here
-    server = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.internal'
-    key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
-    wpt = WPT(server, key)
-    gcp = GCP("tor-metre-personal", "firefox-works", "n1-standard-2", "None")
-    jobs = Jobs('test-db.sqlite')
-    sleep_duration = 180
+def main(config):
+    wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY])
+    gcp = GCP(config[cl.GCP_PROJECT_NAME_ENTRY], config[cl.GCP_IMAGE_NAME_ENTRY], config[cl.GCP_IMAGE_NAME_ENTRY],
+              config[cl.GCP_STATE_FILE_DIR], credential_location=config.get(cl.GCP_CREDENTIALS_PATH_ENTRY))
+    jobs = Jobs(config[cl.JOBS_DB_PATH_ENTRY])
+    sleep_duration = config['sleep-duration']
     old_stuck = set()
     logging.info(f"Beginning Instance Controller loop for project {gcp.project}, "
                  f"job database {jobs.db_path} and WPT server {wpt.server}")
@@ -84,14 +82,19 @@ if __name__ == "main":
     defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
                 cl.WPT_SERVER_URL_ENTRY: None,
                 cl.WPT_API_KEY_ENTRY: None,
-                cl.JOBS_DB_PATH_ENTRY: 'jobs.sqlite'} #TODO - Add the GCP Instance Keys
+                cl.JOBS_DB_PATH_ENTRY: 'jobs.sqlite',
+                cl.GCP_PROJECT_NAME_ENTRY: None,
+                cl.GCP_IMAGE_NAME_ENTRY: None,
+                cl.GCP_INSTANCE_TYPE_ENTRY: "n1-standard-2",
+                cl.GCP_STATE_FILE_DIR: None
+                }
     parser = cl.get_core_args_parser('Handles instance creation, monitoring and shutdown on GCP')
     parser.add_argument("--sleep-duration", type=int, default=180,
-                        help='How many seconds to sleep before between checking the queues and inserting jobs')
-    cl.get_full_args_parser("Handles instance creation, monitoring and shutdown on GCP",wpt_location=False)
+                        help='How many seconds to sleep between checking instance health')
+    cl.get_full_args_parser("Handles instance creation, monitoring and shutdown on GCP",
+                            wpt_location=False, gcp_instances=True)
     result, c = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
     if result:
         main(c)
     else:
         logging.critical("Invalid configuration. Quitting...")
-

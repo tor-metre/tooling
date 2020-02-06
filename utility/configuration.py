@@ -21,9 +21,9 @@ FILE_CONFIG_PATH_ENTRY = "file-config-path"
 
 
 def get_known_config_keys():
-    # TODO Add GCP Instance Keys
     return {WPT_SERVER_URL_ENTRY, JOBS_DB_PATH_ENTRY, WPT_API_KEY_ENTRY,
-            WPT_LOCATIONS_PATH_ENTRY, GCP_CREDENTIALS_PATH_ENTRY}
+            WPT_LOCATIONS_PATH_ENTRY, GCP_CREDENTIALS_PATH_ENTRY, GCP_CREDENTIALS_PATH_ENTRY, GCP_PROJECT_NAME_ENTRY,
+            GCP_IMAGE_NAME_ENTRY, GCP_INSTANCE_TYPE_ENTRY, GCP_STATE_FILE_DIR}
 
 
 def url_is_alive(url):
@@ -43,6 +43,10 @@ def validate_config(config):
     for k in get_known_config_keys():
         if k not in config.keys() and k is not FILE_CONFIG_PATH_ENTRY:
             logging.debug(f"{k} is not in the configuration")
+    for k, v in config.items():
+        if v is None:
+            logging.critical(f"Required configuration key f{k} is missing.")
+            success = False
     if WPT_SERVER_URL_ENTRY in config:  # TODO - Check the actual HEAD response is correct
         condition, result = url_is_alive(config[WPT_SERVER_URL_ENTRY])
         if not condition:
@@ -138,7 +142,16 @@ def add_gcp_args(parser):
 
 
 def add_gcp_instance_args(parser):
-    # TODO Implement for each instance arg type
+    parser.add_argument("--gcp-project-name", metavar='NAME', type=str, help="The name of the GCP Project",
+                        dest=GCP_PROJECT_NAME_ENTRY)
+    parser.add_argument("--gcp-image-name", metavar='IMAGE', type=str, help="The name of the GCP Instance Image",
+                        dest=GCP_IMAGE_NAME_ENTRY)
+    parser.add_argument("--gcp-instance-type", metavar='TYPE', type=str, help="The type of the GCP Instance",
+                        dest=GCP_INSTANCE_TYPE_ENTRY)
+    parser.add_argument("--gcp-state-file-dir", metavar='DIR', type=str,
+                        help="The directory to load instance state from",
+                        dest=GCP_STATE_FILE_DIR)
+
 
 def add_jobs_args(parser):
     parser.add_argument("--job-db", metavar='PATH', type=str, help="The path to the Job DB",
@@ -152,7 +165,7 @@ def get_core_args_parser(description):
     return parser
 
 
-def get_full_args_parser(description, wpt_location=False,gcp_instances=False):
+def get_full_args_parser(description, wpt_location=False, gcp_instances=False):
     parser = get_core_args_parser(description)
     add_jobs_args(parser)
     add_gcp_args(parser)
