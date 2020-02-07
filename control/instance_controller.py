@@ -93,7 +93,7 @@ if __name__ == "main":
                         help='How many seconds to sleep between checking instance health')
     cl.get_full_args_parser("Handles instance creation, monitoring and shutdown on GCP",
                             wpt_location=False, gcp_instances=True)
-    result, c = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
+    result, c = cl.get_config(fixed_config=vars(parser.parse_args()), default_config=defaults)
     if result:
         main(c)
     else:

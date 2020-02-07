@@ -47,7 +47,7 @@ if __name__ == '__main__':
     cl.add_wpt_args(parser)
     cl.add_wpt_location_args(parser)
     cl.add_jobs_args(parser)
-    config_result, returned_config = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
+    config_result, returned_config = cl.get_config(fixed_config=vars(parser.parse_args()), default_config=defaults)
     if config_result:
         main(returned_config)
     else:

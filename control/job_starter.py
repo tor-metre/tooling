@@ -61,7 +61,7 @@ if __name__ == '__main__':
     cl.add_wpt_args(parser)
     cl.add_wpt_location_args(parser)
     cl.add_jobs_args(parser)
-    result, c = cl.get_config(fixed_config=parser.parse_args(), default_config=defaults)
+    result, c = cl.get_config(fixed_config=vars(parser.parse_args()), default_config=defaults)
     if result:
         main(c)
     else:
