@@ -66,6 +66,14 @@ def validate_config(config):
     return success
 
 
+def save_config(file, config):
+    if FILE_CONFIG_PATH_ENTRY in config.keys():
+        del config[FILE_CONFIG_PATH_ENTRY]
+    logging.debug(f"Save config to file at {file}")
+    with open(f'{file}', 'w') as file:
+        yaml.dump(config, file)
+
+
 def get_config(fixed_config=None, default_config=None):
     """
     :param fixed_config: Configuration options which cannot be overwritten
@@ -166,6 +174,42 @@ def get_full_args_parser(description, wpt_location=False, gcp_instances=False):
         add_gcp_instance_args(parser)
     return parser
 
+
+def main():
+    logging.getLogger().setLevel(logging.INFO)
+    parser = get_full_args_parser("Tool for configuration generation", wpt_location=True, gcp_instances=True)
+    config = vars(parser.parse_args())  # Turns the arguments into a dictionary
+    if config is None:
+        logging.critical("You must pass the arguments you wish to save to the output file")
+        exit(-1)
+    elif FILE_CONFIG_PATH_ENTRY not in config.keys():
+        logging.critical("You must specify the file that the configuration should be written to or checked")
+        exit(-1)
+    else:
+        if os.path.isfile(config[FILE_CONFIG_PATH_ENTRY]):
+            logging.info(f"Checking whether {config[FILE_CONFIG_PATH_ENTRY]} is valid")
+            if len(config.keys()) > 1:
+                logging.warning("Ignoring all arguments except the config file path")
+            result, full_config = get_config({FILE_CONFIG_PATH_ENTRY: config[FILE_CONFIG_PATH_ENTRY]},dict())
+            if result:
+                logging.info(f"The configuration file is valid. Contents: {full_config}")
+                exit(0)
+            else:
+                logging.critical(f"The configuration file is invalid")
+                exit(-1)
+        else:
+            defaults = dict()
+            success, full_config = get_config(config, defaults)
+            if success:
+                save_config(full_config[FILE_CONFIG_PATH_ENTRY], full_config)
+                exit(0)
+            else:
+                logging.critical("Configuration was not valid. Not saving file.")
+                exit(-1)
+
+
+if __name__ == "__main__":
+    main()
 
 """ 
 Typical usage:
