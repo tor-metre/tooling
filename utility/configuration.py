@@ -201,6 +201,7 @@ def main():
             defaults = dict()
             success, full_config = get_config(config, defaults)
             if success:
+                logging.info("Saving config...")
                 save_config(full_config[FILE_CONFIG_PATH_ENTRY], full_config)
                 exit(0)
             else:
