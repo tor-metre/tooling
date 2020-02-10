@@ -1,4 +1,4 @@
-from utils import dict_to_location, location_to_dict
+from utility.utils import dict_to_location, location_to_dict
 from datetime import datetime
 import sqlite3
 import logging

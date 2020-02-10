@@ -1,8 +1,8 @@
-from wpt import WPT
-from jobs import Jobs
 import logging
+from ..utility.wpt import WPT
+from ..utility.jobs import Jobs
 import time
-import configuration as cl
+from ..utility import configuration as cl
 
 
 def get_jobs_to_queue(wpt, jobs, max_queue_length=100):
