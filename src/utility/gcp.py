@@ -2,7 +2,7 @@
 """
 
 from googleapiclient import discovery
-from utility.utils import zone_from_name, dict_to_location, location_to_dict
+from .utils import zone_from_name, dict_to_location, location_to_dict
 import logging
 
 

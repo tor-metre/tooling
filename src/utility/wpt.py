@@ -4,7 +4,7 @@
 import json
 import subprocess
 from tempfile import SpooledTemporaryFile
-import utility.utils as utils
+from .utils import dict_to_location, save_result
 import logging
 from typing import Sequence
 
@@ -90,7 +90,7 @@ class WPT:
         job.
         """
         if "location" not in job.keys():
-            job["location"] = utils.dict_to_location(job)
+            job["location"] = dict_to_location(job)
         self.logger.debug("Asynchronously running a test labelled {job_id} on {script} with location {location},"
                           " {runs} runs, connectivity {connectivity}".format_map(job))
         args = [
@@ -120,7 +120,7 @@ class WPT:
             logging.warning(
                 f"Synchronous test failed for {path} on location {location} with connectivity{connectivity}. "
                 f"The result was {r} ")
-        utils.save_result(r)
+        save_result(r)
 
     def get_testers(self):
         args = ['webpagetest',

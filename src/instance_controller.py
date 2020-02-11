@@ -1,9 +1,9 @@
 import logging
-from ..utility.wpt import WPT
-from ..utility.gcp import GCP
-from ..utility.jobs import Jobs
+from .utility.wpt import WPT
+from .utility.gcp import GCP
+from .utility.jobs import Jobs
 import time
-from ..utility import configuration as cl
+from .utility import configuration as cl
 
 
 def get_instances_to_start(gcp, jobs, all_instances=None):

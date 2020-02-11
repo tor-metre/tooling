@@ -1,5 +1,5 @@
-from utils import gather_scripts
-from jobs import Jobs
+from .utility.utils import gather_scripts
+from .utility.jobs import Jobs
 
 
 def generate_jobs(jobs, regions, browsers, ids, scripts, reps, experiment_id):
