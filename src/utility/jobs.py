@@ -14,6 +14,7 @@ class Jobs:
         self.cursor = self.db.cursor()
         self.create_db()
         self.logger = logging.getLogger("utility." + __name__)
+        self.logger.setLevel(logging.DEBUG)
         self.logger.debug(f"Initialised logging for Jobs Object attached to database {db_path}")
 
     def create_db(self):
@@ -51,8 +52,9 @@ class Jobs:
               f"'{job['script']}'," \
               f"'{new_status}'," \
               f"'{job['runs']}'," \
-              f"'{job['connectivity']}'" \
+              f"'{job['connectivity']}'," \
               f"'{t}');"
+        self.logger.debug(f"Creating job command: {cmd}")
         self.cursor.execute(cmd)
         assert (self.cursor.lastrowid is not None)
         self.logger.debug(f"Created job with id: {self.cursor.lastrowid}")
