@@ -79,6 +79,7 @@ def main(config):
 
 
 if __name__ == "__main__":
+    logging.getLogger().setLevel(logging.INFO)
     defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
                 cl.WPT_SERVER_URL_ENTRY: None,
                 cl.WPT_API_KEY_ENTRY: None,
@@ -95,7 +96,6 @@ if __name__ == "__main__":
                             wpt_location=False, gcp_instances=True)
     result, c = cl.get_config(fixed_config=vars(parser.parse_args()), default_config=defaults)
     if result:
-        print(c)
         main(c)
     else:
         logging.critical("Invalid configuration. Quitting...")

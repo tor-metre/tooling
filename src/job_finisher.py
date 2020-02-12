@@ -35,6 +35,7 @@ def main(config):
 
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
     defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
                 cl.WPT_SERVER_URL_ENTRY: None,
                 cl.WPT_API_KEY_ENTRY: None,
