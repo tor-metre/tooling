@@ -44,7 +44,7 @@ def validate_config(config):
             logging.debug(f"{k} is not in the configuration")
     for k, v in config.items():
         if v is None:
-            logging.critical(f"Required configuration key f{k} is missing.")
+            logging.critical(f"Required configuration key {k} is missing.")
             success = False
     if WPT_SERVER_URL_ENTRY in config:  # TODO - Check the actual HEAD response is correct
         condition, result = url_is_alive(f"http://{config[WPT_SERVER_URL_ENTRY]}")
