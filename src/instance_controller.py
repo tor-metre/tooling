@@ -13,7 +13,7 @@ def get_instances_to_start(gcp, jobs, all_instances=None):
         all_instances = gcp.get_instances()
     pending_locations = jobs.get_pending_locations()
     running_locations = gcp.get_running_instances(instances=all_instances)
-    locations_to_start = set([x['name'] for x in pending_locations]) - set([x['name'] for x in running_locations])
+    locations_to_start = set(pending_locations) - set([x['name'] for x in running_locations])
     logger.debug(f"Identified {len(locations_to_start)} instances to be started")
     return locations_to_start
 
