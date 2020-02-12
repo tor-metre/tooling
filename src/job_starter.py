@@ -44,6 +44,7 @@ def main(config):
     while True:
         wpt.set_server_locations(jobs.get_unique_job_locations())
         submit_jobs(wpt, jobs, get_jobs_to_queue(wpt, jobs, max_queue_length=config['max_queue_length']))
+        jobs.persist()
         time.sleep(config['sleep_duration'])
 
 

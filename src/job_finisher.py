@@ -31,6 +31,7 @@ def main(config):
                 failed += 1
         logging.info(f"Checked {len(candidate_finished)} jobs. {successful} successfully finished, {failed} had errors "
                      f"during testing.")
+        jobs.persist()
         time.sleep(config['sleep_duration'])
 
 
