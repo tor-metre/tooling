@@ -27,7 +27,7 @@ def main():
     p.add_argument("-r","--runs",type=int,default=1,help="The number of repeats to perform")
     p.add_argument("-c","--connectivity",type=str,default="Native",help="The connectivity to use {Native,...}")
     args = vars(p.parse_args())
-    jobs = Jobs('test.db')
+    jobs = Jobs(args['db'])
     j = make_job(args["experiment_id"],args["zone"],args["browser"],args["agent_id"],
                  args["script"],args["runs"],args["connectivity"])
     logging.debug(f"Submitting job: {j}")
