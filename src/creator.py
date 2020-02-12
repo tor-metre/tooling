@@ -24,7 +24,7 @@ def main():
     p.add_argument("-a","--agent-id",type=str,default="test-agent",help="The agent id to use")
     p.add_argument("-e","--experiment-id",type=str,default="test-experiment",help="The experiment id to use")
     p.add_argument("script",type=str,help="The url or script file to test")
-    p.add_argument("-r","--runs",type=int,help="The number of repeats to perform")
+    p.add_argument("-r","--runs",type=int,default=1,help="The number of repeats to perform")
     p.add_argument("-c","--connectivity",type=str,default="Native",help="The connectivity to use {Native,...}")
     args = vars(p.parse_args())
     jobs = Jobs('test.db')
@@ -32,6 +32,7 @@ def main():
                  args["script"],args["runs"],args["connectivity"])
     logging.debug(f"Submitting job: {j}")
     r = jobs.create_job(j)
+    jobs.persist()
     logging.info(f"Job submitted with id: {r}")
     exit(0)
 
