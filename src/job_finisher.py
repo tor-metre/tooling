@@ -23,7 +23,7 @@ def main(config):
     while True:
         successful = 0
         failed = 0
-        candidate_finished = jobs.get_oldest_submitted_jobs(config['max-batch-size'])
+        candidate_finished = jobs.get_oldest_submitted_jobs(config['max_batch_size'])
         for c in candidate_finished:
             if update_job(wpt, jobs, c):
                 successful += 1
