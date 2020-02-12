@@ -11,7 +11,6 @@ class GCP:
 
     def __init__(self, project, source_disk, instance_type, state_file_storage):
         self.logger = logging.getLogger("utility." + __name__)
-        self.logger.setLevel(logging.DEBUG)
         self.logger.debug(f"Initialised logging for GCP Object attached to project {project}")
         self.compute = discovery.build('compute', 'v1')
         self.project = project
