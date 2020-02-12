@@ -1,8 +1,8 @@
 import logging
-from .utility.wpt import WPT, successful_result
-from .utility.jobs import Jobs
+from utility.wpt import WPT, successful_result
+from utility.jobs import Jobs
 import time
-from .utility import configuration as cl
+from utility import configuration as cl
 
 
 def update_job(wpt, jobs, job):

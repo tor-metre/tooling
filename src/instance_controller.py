@@ -1,9 +1,9 @@
 import logging
-from .utility.wpt import WPT
-from .utility.gcp import GCP
-from .utility.jobs import Jobs
+from utility.wpt import WPT
+from utility.gcp import GCP
+from utility.jobs import Jobs
 import time
-from .utility import configuration as cl
+from utility import configuration as cl
 
 
 def get_instances_to_start(gcp, jobs, all_instances=None):
@@ -78,7 +78,7 @@ def main(config):
         time.sleep(sleep_duration)
 
 
-if __name__ == "main":
+if __name__ == "__main__":
     defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
                 cl.WPT_SERVER_URL_ENTRY: None,
                 cl.WPT_API_KEY_ENTRY: None,
