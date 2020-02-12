@@ -43,8 +43,8 @@ def main(config):
     jobs = Jobs(config[cl.JOBS_DB_PATH_ENTRY])
     while True:
         wpt.set_server_locations(jobs.get_unique_job_locations())
-        submit_jobs(wpt, jobs, get_jobs_to_queue(wpt, jobs, max_queue_length=config['max-queue-length']))
-        time.sleep(config['sleep-duration'])
+        submit_jobs(wpt, jobs, get_jobs_to_queue(wpt, jobs, max_queue_length=config['max_queue_length']))
+        time.sleep(config['sleep_duration'])
 
 
 if __name__ == '__main__':

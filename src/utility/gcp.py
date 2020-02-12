@@ -10,21 +10,25 @@ class GCP:
     # WARNING - This class is NOT Thread Safe
 
     def __init__(self, project, source_disk, instance_type, state_file_storage):
+        self.logger = logging.getLogger("utility." + __name__)
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.debug(f"Initialised logging for GCP Object attached to project {project}")
         self.compute = discovery.build('compute', 'v1')
         self.project = project
         self.source_disk = source_disk
         self.instance_type = instance_type
         self.state_file_storage = state_file_storage
+        self.global_zones = None
         self.global_zones = self._fetch_zones()
-        self.logger = logging.getLogger("utility." + __name__)
-        self.logger.debug(f"Initialised logging for GCP Object attached to project {project}")
 
     def _fetch_zones(self):
+        if self.global_zones is not None:
+            return self.global_zones
         request = self.compute.zones().list(project=self.project)
         zone_names = set()
         while request is not None:
             response = request.execute()
-            zone_names.update([z['id'] for z in response['items'] if z['deprecated']['state'] == "ACTIVE"])
+            zone_names.update([z['name'] for z in response['items']])
             request = self.compute.zones().list_next(previous_request=request, previous_response=response)
         self.logger.debug(f"Fetched {len(zone_names)} zones from GCP API")
         return frozenset(zone_names)
@@ -101,20 +105,24 @@ class GCP:
     def get_instances(self, zones=None):
         zones = self._set_zones_if_empty(zones)
         results = list()
+        self.logger.debug(f"Looking for instances in {len(zones)} zones")
         for zone in zones:
+            self.logger.debug(f"Looking for instances in {zone}")
             request = self.compute.instances().list(project=self.project, zone=zone)
             while request is not None:
                 response = request.execute()
-                for instance in response['items']:
-                    instance_dict = dict()
-                    instance_dict['name'] = instance['name']
-                    instance_dict['zone'] = zone
-                    instance_dict['creation_time'] = instance['creationTimestamp']
-                    instance_dict['status'] = instance['status']
-                    if 'location' in instance['metadata'].keys():
-                        instance_dict['location'] = instance['metadata']['location']
-                        instance_dict['stateFile'] = instance['metadata']['stateFile']
-                    results.append(instance_dict)
+                instances = response.get('items')
+                if instances is not None:
+                    for instance in instances:
+                        instance_dict = dict()
+                        instance_dict['name'] = instance['name']
+                        instance_dict['zone'] = zone
+                        instance_dict['creation_time'] = instance['creationTimestamp']
+                        instance_dict['status'] = instance['status']
+                        if 'location' in instance['metadata'].keys():
+                            instance_dict['location'] = instance['metadata']['location']
+                            instance_dict['stateFile'] = instance['metadata']['stateFile']
+                        results.append(instance_dict)
                 request = self.compute.instances().list_next(previous_request=request, previous_response=response)
         self.logger.debug(f"Discovered {len(results)} in {len(zones)} zones")
         return results

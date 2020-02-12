@@ -31,7 +31,7 @@ def main(config):
                 failed += 1
         logging.info(f"Checked {len(candidate_finished)} jobs. {successful} successfully finished, {failed} had errors "
                      f"during testing.")
-        time.sleep(config['sleep-duration'])
+        time.sleep(config['sleep_duration'])
 
 
 if __name__ == '__main__':

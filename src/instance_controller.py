@@ -10,8 +10,8 @@ def get_instances_to_start(gcp, jobs, all_instances=None):
     if all_instances is None:
         all_instances = gcp.get_instances()
     pending_locations = jobs.get_pending_locations()
-    running_locations = set(gcp.get_running_instances(instances=all_instances))
-    locations_to_start = pending_locations - set([x['name'] for x in running_locations])
+    running_locations = gcp.get_running_instances(instances=all_instances)
+    locations_to_start = set([x['name'] for x in pending_locations]) - set([x['name'] for x in running_locations])
     logging.debug(f"Identified {len(locations_to_start)} instances to be started")
     return locations_to_start
 
@@ -42,11 +42,12 @@ def get_maybe_stuck_instances(wpt, gcp, all_instances=None):
 
 
 def main(config):
+    logging.getLogger().setLevel(logging.DEBUG)
     wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY])
     gcp = GCP(config[cl.GCP_PROJECT_NAME_ENTRY], config[cl.GCP_IMAGE_NAME_ENTRY], config[cl.GCP_IMAGE_NAME_ENTRY],
               config[cl.GCP_STATE_FILE_DIR])
     jobs = Jobs(config[cl.JOBS_DB_PATH_ENTRY])
-    sleep_duration = config['sleep-duration']
+    sleep_duration = config['sleep_duration']
     old_stuck = set()
     logging.info(f"Beginning Instance Controller loop for project {gcp.project}, "
                  f"job database {jobs.db_path} and WPT server {wpt.server}")
@@ -95,6 +96,7 @@ if __name__ == "__main__":
                             wpt_location=False, gcp_instances=True)
     result, c = cl.get_config(fixed_config=vars(parser.parse_args()), default_config=defaults)
     if result:
+        print(c)
         main(c)
     else:
         logging.critical("Invalid configuration. Quitting...")
