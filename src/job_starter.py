@@ -35,7 +35,7 @@ def submit_jobs(wpt, jobs, queue):
             error_submission += 1
             logging.warning(f"Error submitting {job['job_id']} Error message: {value}")
             jobs.set_job_as_error_submitting(job['job_id'], value)
-    logging.info(f"{len(queue)} jobs. {succeeded} succeeded. {error_submission} errors upon submission.")
+    logging.info(f"{len(queue)} jobs considered. {succeeded} succeeded. {error_submission} errors upon submission.")
 
 
 def main(config):
