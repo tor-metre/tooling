@@ -45,7 +45,7 @@ def get_maybe_stuck_instances(wpt, gcp, all_instances=None):
 
 def main(config):
     wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY])
-    gcp = GCP(config[cl.GCP_PROJECT_NAME_ENTRY], config[cl.GCP_IMAGE_NAME_ENTRY], config[cl.GCP_IMAGE_NAME_ENTRY],
+    gcp = GCP(config[cl.GCP_PROJECT_NAME_ENTRY], config[cl.GCP_IMAGE_NAME_ENTRY], config[cl.GCP_INSTANCE_TYPE_ENTRY],
               config[cl.GCP_STATE_FILE_DIR])
     jobs = Jobs(config[cl.JOBS_DB_PATH_ENTRY])
     sleep_duration = config['sleep_duration']
