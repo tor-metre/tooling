@@ -33,7 +33,7 @@ An Experiment has the following methods:
  * Add Instance
  * Get Instance
  * Check Finished (Returns whether or not it has finished )
- * Get Results (Iterator that returns paths to each result)
+ * Get Results (Iterator that returns paths to each result (url or file?))
 
 ## Instance Objects
 
@@ -43,7 +43,7 @@ An Instance records the following data:
  * ID 
  * Instance Type
  * Base VM Image
- * Tor Browser Acrhive
+ * Tor Browser Archive
  * Diff Storage Location
  * A list of Jobs
  
@@ -52,8 +52,9 @@ It can be 'constructed' through the Experiment Object.
 ## Job Objects
 
 This is a WPT Job object. It is always attached to an Instance.
-
-It exposes all the WPT Job Options. As well as scheduling etc. 
+We record the instance id. The script/url used. The connectivity 
+The timing schedule. Everything else is stuffed into a single column 
+as a dict. 
 
 Relevant Arguments from WPT API:
 
