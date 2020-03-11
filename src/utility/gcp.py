@@ -42,6 +42,10 @@ class GCP:
     def get_zones(self):
         return self.global_zones
 
+    def get_instance_image_id(self,name):
+        response = self.compute.images().get(project=self.project, image=name).execute()
+        return response['sourceImageId']
+
     def _create_instance(self, zone, name, location, state_file):
         assert (zone in self.global_zones)
         self.logger.debug(f"Creating an instance in {zone} with {name} of type {self.instance_type}")
