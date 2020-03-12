@@ -21,7 +21,9 @@ def main(config):
     while True:
         successful = 0
         failed = 0
-        candidate_finished = experiment.get_oldest_submitted(1000)
+        # TODO This should work out a submitted_before time based on the queue size? Some other heuristic?
+        # we could save a lot of time here!
+        candidate_finished = experiment.get_maybe_finished_jobs(1000)
         for c in candidate_finished:
             if update_job(wpt, c):
                 successful += 1

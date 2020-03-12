@@ -5,7 +5,7 @@ from utility import configuration as cl
 import experiment
 
 def get_jobs_to_queue(wpt, max_queue_length=100):
-    queues = wpt.get_job_queues()
+    queues = wpt.get_job_locations()
     logging.debug(f"Considering {len(queues.keys())} queues with a maximum length of {max_queue_length}")
     jobs_to_submit = list()
     for queue, length in queues.items():
@@ -14,7 +14,7 @@ def get_jobs_to_queue(wpt, max_queue_length=100):
             continue
         else:
             logging.debug(f'Looking for {num_to_add} jobs to enqueue for {queue}')
-            jobs_to_add = experiment.get_awaiting_jobs(queue, num_to_add)
+            jobs_to_add = experiment.get_awaiting_jobs_by_wpt_location(queue, num_to_add)
             logging.debug(f"Discovered {len(jobs_to_add)} jobs to submit for {queue}")
             jobs_to_submit.extend(jobs_to_add)
     logging.debug(f"In total, discovered {len(jobs_to_submit)} to queue for {len(queues.keys())} queues")
@@ -41,7 +41,7 @@ def main(config):
     experiment.init_database(config[cl.JOBS_DB_PATH_ENTRY])
     wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY], locations_file=cl.WPT_LOCATIONS_PATH_ENTRY)
     while True:
-        wpt.set_server_locations(experiment.get_all_locations())
+        wpt.set_server_locations(experiment.get_all_wpt_locations())
         submit_jobs(wpt, get_jobs_to_queue(wpt, max_queue_length=config['max_queue_length']))
         time.sleep(config['sleep_duration'])
 

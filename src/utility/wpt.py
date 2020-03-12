@@ -4,7 +4,6 @@
 import json
 import subprocess
 from tempfile import SpooledTemporaryFile
-from .utils import save_result
 import logging
 from typing import Sequence
 

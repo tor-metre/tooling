@@ -24,7 +24,7 @@ def get_instances_to_stop(gcp, wpt, all_instances=None):
     locations_with_work = set([x.wpt_location for x in experiment.get_pending_instances()])
     locations_with_jobs = set(wpt.get_active_locations())
     intended_active_locations = locations_with_work.union(locations_with_jobs)
-    intended_active_instances = set([experiment.location_to_instance_name((x)) for x in intended_active_locations])
+    intended_active_instances = set([experiment.wpt_location_to_gcp_name(x) for x in intended_active_locations])
     logger.debug(f"There are {len(intended_active_instances)}  intended active instances.")
     all_instances = set([r['name'] for r in gcp.get_running_instances(instances=all_instances)])
     logger.debug(f"There are {len(all_instances)} actual active instances.")
@@ -39,7 +39,7 @@ def get_maybe_stuck_instances(wpt, gcp, all_instances=None):
         all_instances = gcp.get_instances()
     running_instances = set([x['name'] for x in gcp.get_running_instances(instances=all_instances)])
     intended_active_locations = wpt.get_active_locations()
-    intended_active_instances = set([experiment.location_to_instance_name((x)) for x in intended_active_locations])
+    intended_active_instances = set([experiment.wpt_location_to_gcp_name(x) for x in intended_active_locations])
     possible_stuck = running_instances - intended_active_instances
     possible_stuck = [x for x in possible_stuck if 'wpt-server' not in x]
     logger.debug(f"Identified {len(possible_stuck)} possibly stuck instances")
@@ -71,8 +71,8 @@ def main(config):
         if len(definitely_stuck) > 0:
             logger.critical(f"{len(definitely_stuck)} are stuck")
 
-        to_start = [experiment.get_instance_by_name(x) for x in to_start]
-        to_stop = [experiment.get_instance_by_name(x) for x in to_stop]
+        to_start = [experiment.get_instance_by_gcp_name(x) for x in to_start]
+        to_stop = [experiment.get_instance_by_gcp_name(x) for x in to_stop]
         gcp.activate_instances(to_start, instances=instances)
         gcp.deactivate_instances(to_stop, instances=instances)
         for stuck in definitely_stuck:
