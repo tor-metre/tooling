@@ -4,7 +4,7 @@ wptserver = 'http://wpt-server.us-central1-a.c.moz-fx-dev-djackson-torperf.inter
 key = '1Wa1cxFtIzeg85vBqS4hdHNX11tEwqa2'
 
 wpt = WPT(wptserver,key)
-qu = wpt.get_locations()
+qu = wpt.get_all_locations()
 
 count = 0
 count2 = 0

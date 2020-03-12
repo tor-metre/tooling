@@ -1,37 +1,34 @@
 import logging
-from utility.wpt import WPT, successful_result
-from utility.jobs import Jobs
+from utility.wpt import WPT, is_successful_result
 import time
 from utility import configuration as cl
+import experiment
 
-
-def update_job(wpt, jobs, job):
-    job_id = job['wpt_id']
-    result = wpt.get_test_result(job_id)
-    if successful_result(result):
-        jobs.set_job_as_finished(job_id)
+def update_job(wpt, job):
+    result = wpt.get_test_result(job.wpt_id)
+    if is_successful_result(result):
+        job.set_finished()
         return True
     else:
-        jobs.set_job_as_error_testing(job_id, "UNIMPLEMENTED")  # TODO Implement
-        logging.warning(f"Job {job_id} with queue id {job['wpt_id']} failed during testing with reason UNIMPLEMENTED")
+        job.set_error_testing('NOT YET IMPLEMENTED!')  # TODO Implement
+        logging.warning(f"Job {job.id} with queue id {job.wpt_id} failed during testing with reason UNIMPLEMENTED")
         return False
 
 
 def main(config):
-    jobs = Jobs(config[cl.JOBS_DB_PATH_ENTRY])
+    experiment.init_database(config[cl.JOBS_DB_PATH_ENTRY])
     wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY])
     while True:
         successful = 0
         failed = 0
-        candidate_finished = jobs.get_oldest_submitted_jobs(config['max_batch_size'])
+        candidate_finished = experiment.get_oldest_submitted(1000)
         for c in candidate_finished:
-            if update_job(wpt, jobs, c):
+            if update_job(wpt, c):
                 successful += 1
             else:
                 failed += 1
         logging.info(f"Checked {len(candidate_finished)} jobs. {successful} successfully finished, {failed} had errors "
                      f"during testing.")
-        jobs.persist()
         time.sleep(config['sleep_duration'])
 
 

@@ -4,7 +4,7 @@
 import json
 import subprocess
 from tempfile import SpooledTemporaryFile
-from .utils import dict_to_location, save_result
+from .utils import save_result
 import logging
 from typing import Sequence
 
@@ -21,7 +21,7 @@ def _get_buffered_json(command: Sequence[str]):
     return output
 
 
-def successful_result(result):
+def is_successful_result(result):
     """ Checks that a WPT test was successful.
 
     Returns a boolean value indicating success or failure.
@@ -48,40 +48,6 @@ class WPT:
         else:
             self.logger.debug(f"Path to Location file:{locations_file}")
 
-    def run_test(self, path, location, connectivity='Native'):
-        """ Synchronously run a WPT test and return the output.
-
-        This function calls the WPT javascript API and submits a test. It polls
-        (every 5 seconds) for the job to finish and returns the results as an object
-        (parsed from the JSON).
-
-        Positional Arguments:
-            path - The location of the script to test, or the website URL
-            server - The WPT server to use
-            key - The API key for the WPT server
-
-        Keyword Arguments:
-            connectivity - The connectivity profile to use for the test
-            location - The location that should run the test.
-        """
-        self.logger.debug(
-            f"Synchronously running a test on {path} with location {location} and connectivity {connectivity}"
-        )
-        args = [
-            'webpagetest',
-            'test', path,
-            '--server', self.server,
-            '--key', self.key,
-            '--location', location,
-            '--runs', '1',
-            '--connectivity', connectivity,
-            '--label', path,
-            '--keepua',  # Don't change the useragent to indicate this is a bot
-            '--first',  # Don't try for a repeat view
-            '--poll', '5'  # How frequently to poll the web server for the result
-        ]
-        return _get_buffered_json(args)
-
     def submit_test(self, job):
         """ Asynchronously run a WPT test.
 
@@ -89,38 +55,23 @@ class WPT:
         of the request as an object, including success code and a unique ID for the submitted
         job.
         """
-        if "location" not in job.keys():
-            job["location"] = dict_to_location(job)
-        self.logger.debug("Asynchronously running a test labelled {job_id} on {script} with location {location},"
-                          " {runs} runs, connectivity {connectivity}".format_map(job))
         args = [
             'webpagetest',
-            'test', job['script'],
+            'test', job.target,
             '--server', self.server,
             '--key', self.key,
-            '--location', job["location"],
-            '--runs', job["runs"],
-            '--connectivity', job["connectivity"],
-            '--label', job['job_id'],
-            '--keepua',  # Don't change the useragent to indicate this is a bot
-            '--first',  # Don't try for a repeat view
+            '--location', job.instance.wpt_location,
+            '--label', job.misc
+            #'--keepua',  # Don't change the useragent to indicate this is a bot
+            #'--first',  # Don't try for a repeat view
         ]
+        args.extend(job.get_options_list())
         result = _get_buffered_json(args)
-        if successful_result(result):
+        if is_successful_result(result):
             queue_id = result['data']['testId']
             return True, queue_id
         else:
             return False, "ERROR MESSAGE NOT YET IMPLEMENTED"  # TODO return the error from the response
-
-    def run_and_save_test(self, path, location, connectivity):
-        """ Runs a WPT test (synchronously), checks the result and saves it
-        """
-        r = self.run_test(path, location, connectivity)
-        if not successful_result(r):
-            logging.warning(
-                f"Synchronous test failed for {path} on location {location} with connectivity{connectivity}. "
-                f"The result was {r} ")
-        save_result(r)
 
     def get_testers(self):
         args = ['webpagetest',
@@ -131,7 +82,7 @@ class WPT:
         self.logger.debug("Fetching the testers from the WPT Server")
         return _get_buffered_json(args)
 
-    def get_locations(self):
+    def get_all_locations(self):
         # See which locations the server thinks are up.
         # Check all active instances appear on this list
         # Its okay if the server thinks some locations are up but the instances are down. It just hasn't realised yet.
@@ -143,8 +94,8 @@ class WPT:
         self.logger.debug("Fetching the locations from the WPT Server")
         return _get_buffered_json(args)
 
-    def get_job_queues(self):
-        q = self.get_locations()
+    def get_job_locations(self):
+        q = self.get_all_locations()
         if 'data' not in q['response'].keys():
             # No queues up!
             return dict()
@@ -157,11 +108,11 @@ class WPT:
                 q['response']['data']['location']['id']:
                     q['response']['data']['location']['PendingTests']['Total']
             }
-        self.logger.debug(f"There are {len(result.keys())} queues on the server")
+        self.logger.debug(f"There are {len(result.keys())} locations on the server")
         return result
 
-    def get_active_job_queues(self):
-        return [k for (k, v) in self.get_job_queues().items() if v > 0]
+    def get_active_locations(self):
+        return [k for (k, v) in self.get_job_locations().items() if v > 0]
 
     def set_server_locations(self, locations):
         assert (self.temp_locations_file is not None)
@@ -213,7 +164,7 @@ class WPT:
                 ]
         self.logger.debug(f"Checking the status of test id: {test_id}")
         output = _get_buffered_json(args)
-        if successful_result(output):
+        if is_successful_result(output):
             return True
         else:
             return False

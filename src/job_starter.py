@@ -1,11 +1,10 @@
 import logging
 from utility.wpt import WPT
-from utility.jobs import Jobs
 import time
 from utility import configuration as cl
+import experiment
 
-
-def get_jobs_to_queue(wpt, jobs, max_queue_length=100):
+def get_jobs_to_queue(wpt, max_queue_length=100):
     queues = wpt.get_job_queues()
     logging.debug(f"Considering {len(queues.keys())} queues with a maximum length of {max_queue_length}")
     jobs_to_submit = list()
@@ -15,36 +14,35 @@ def get_jobs_to_queue(wpt, jobs, max_queue_length=100):
             continue
         else:
             logging.debug(f'Looking for {num_to_add} jobs to enqueue for {queue}')
-            jobs_to_add = jobs.get_awaiting_jobs(queue, num_to_add)
+            jobs_to_add = experiment.get_awaiting_jobs(queue, num_to_add)
             logging.debug(f"Discovered {len(jobs_to_add)} jobs to submit for {queue}")
             jobs_to_submit.extend(jobs_to_add)
     logging.debug(f"In total, discovered {len(jobs_to_submit)} to queue for {len(queues.keys())} queues")
     return jobs_to_submit
 
 
-def submit_jobs(wpt, jobs, queue):
+def submit_jobs(wpt, jobs_to_submit):
     succeeded = 0
     error_submission = 0
-    for job in queue:
+    for job in jobs_to_submit:
         (success, value) = wpt.submit_test(job)
         if success:
             succeeded += 1
-            jobs.set_job_as_submitted(job['job_id'], value)
-            logging.debug(f"Successfully submitted job {job['job_id']} as WPT job {value}")
+            job.set_submitted(value)
+            logging.debug(f"Successfully submitted job {job.id} as WPT job {value}")
         else:
             error_submission += 1
-            logging.warning(f"Error submitting {job['job_id']} Error message: {value}")
-            jobs.set_job_as_error_submitting(job['job_id'], value)
-    logging.info(f"{len(queue)} jobs considered. {succeeded} succeeded. {error_submission} errors upon submission.")
+            logging.warning(f"Error submitting {job.id} Error message: {value}")
+            job.set_error_submission(value)
+    logging.info(f"{len(jobs_to_submit)} jobs considered. {succeeded} succeeded. {error_submission} errors upon submission.")
 
 
 def main(config):
+    experiment.init_database(config[cl.JOBS_DB_PATH_ENTRY])
     wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY], locations_file=cl.WPT_LOCATIONS_PATH_ENTRY)
-    jobs = Jobs(config[cl.JOBS_DB_PATH_ENTRY])
     while True:
-        wpt.set_server_locations(jobs.get_unique_job_locations())
-        submit_jobs(wpt, jobs, get_jobs_to_queue(wpt, jobs, max_queue_length=config['max_queue_length']))
-        jobs.persist()
+        wpt.set_server_locations(experiment.get_all_locations())
+        submit_jobs(wpt, get_jobs_to_queue(wpt, max_queue_length=config['max_queue_length']))
         time.sleep(config['sleep_duration'])
 
 

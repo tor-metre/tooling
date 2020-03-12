@@ -11,32 +11,6 @@ import logging
 
 SEPERATOR = "--"
 
-
-def zone_from_name(name):
-    components = name.split(SEPERATOR)
-    return components[0]
-
-
-def id_from_name(name):
-    components = name.split(SEPERATOR)
-    return components[2]
-
-
-def location_to_dict(location):
-    components = location.split(SEPERATOR)
-    row = dict()
-    row['zone'] = components[0]
-    row['browser'] = components[1]
-    row['agent_id'] = components[2]
-    return row
-
-
-def dict_to_location(row):
-    """ Turns a GCP Location into a WPT Location. 
-    """
-    return row['zone'] + SEPERATOR + row['browser'] + SEPERATOR + row['agent_id']
-
-
 def gather_scripts(folder, suffix='.wpt'):
     """ Gathers all WPT Script files from a directory (recursively)
 
