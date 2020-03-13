@@ -12,14 +12,14 @@ db = SqliteDatabase(None)
 def init_database(location):
     # Open the connection
     # Setup defaults for the below
-    db = SqliteDatabase(location)
+    db.init(location)
     if not os.path.isfile(location):
         db.create_tables([BaseImage, BrowserArchive, Experiment, Instance, Job])
 
 
 def create_image_type(name, description, gcp):
-    img = BaseImage(name=name, description=description, gcp_id=gcp.get_instance_image_id(name))
-    img.save()
+    img = BaseImage.create(name=name, description=description, gcp_id=gcp.get_instance_image_id(name))
+    return img
 
 
 def create_browser_archive(bucket_name, blob_name, description):
@@ -29,6 +29,7 @@ def create_browser_archive(bucket_name, blob_name, description):
     j = bucket.get_blob(blob_name)
     ba = BrowserArchive(bucket=bucket_name, blob=blob_name, description=description, hash=j)
     ba.save()
+    return ba
 
 
 def create_experiment():
@@ -54,7 +55,7 @@ def get_maybe_finished_jobs(limit, submitted_before=None):
         submitted_before = datetime.datetime.now()  - datetime.timedelta(minutes=2)
     all_instances = get_all_instances()
     jobs = list()
-    fair_cap = max(1, limit / len(all_instances))  # Evenly divide the slots
+    fair_cap = max(1, limit / max(1, len(all_instances)))  # Evenly divide the slots
     # In general we expect all active instances to be processing jobs at roughly the same rate
     # so this should be reasonable effecitve (not too many under reports from asymmetric queues)
     for i in all_instances:
@@ -106,12 +107,12 @@ class BrowserArchive(BaseModel):
 class Experiment(BaseModel):
     name = CharField(unique=True)
     description = CharField()
-    defaults = BlobField()
+    defaults = BlobField(null=True) #TODO Not currently used I think?
     # Metadata
     created_date = DateTimeField(default=datetime.datetime.now)
 
     def get_pending_instances(self):
-        return [i for i in self.instances if len(i.get_awaiting(1)) > 0]
+        return [i for i in self.instances if len(i.get_awaiting_jobs(1)) > 0]
 
     # Public
     def is_finished(self):
@@ -142,11 +143,11 @@ class Instance(BaseModel):
     base_image = ForeignKeyField(BaseImage, backref='instances')
     browser_archive = ForeignKeyField(BrowserArchive, backref='instances')
     instance_type = CharField()
-    description = CharField()
+    description = CharField(null=True)
     # Metadata
     created_date = DateTimeField(default=datetime.datetime.now)
-    desired_state = CharField()
-    last_changed = DateTimeField()
+    desired_state = CharField(null=True)
+    last_changed = DateTimeField(null=True)
     storage_location = CharField()
 
     # Public
@@ -170,19 +171,19 @@ class Instance(BaseModel):
 
 class Job(BaseModel):
     instance = ForeignKeyField(Instance, backref='jobs')
-    description = CharField()
+    description = CharField(null=True)
     target = CharField()
-    notBefore = DateTimeField()
-    notAfter = DateTimeField()
-    options = BlobField()
+    notBefore = DateTimeField(default=datetime.datetime(1970,1,1))
+    notAfter = DateTimeField(default=datetime.datetime(2030,1,1))
+    options = BlobField(null=True)
     # Metadata
-    status = CharField()
-    wpt_id = CharField(unique=True)
+    status = CharField(default='AWAITING')
+    wpt_id = CharField(unique=True,null=True)
     created_date = DateTimeField(default=datetime.datetime.now)
-    result_url = CharField(unique=True)
-    error_msg = CharField()
-    submitted_date = DateTimeField()
-    finished_date = DateTimeField()
+    result_url = CharField(unique=True,null=True)
+    error_msg = CharField(null=True)
+    submitted_date = DateTimeField(null=True)
+    finished_date = DateTimeField(null=True)
 
     def get_options_list(self):
         d = json.loads(self.options)  # Double check if this is safe?

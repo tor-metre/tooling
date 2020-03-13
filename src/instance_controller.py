@@ -32,6 +32,9 @@ def get_instances_to_stop(gcp, wpt, all_instances=None):
     logger.debug(f"Identified {len(to_stop)} instances which can be stopped.")
     return to_stop
 
+def get_instances_to_delete(gcp,all_instances=None):
+    #TODO Delete instances that won't have any more jobs for at least an hour
+    return list()
 
 def get_maybe_stuck_instances(wpt, gcp, all_instances=None):
     #TODO Probably a better way to do this now we have more state in sqlite
@@ -88,14 +91,14 @@ if __name__ == "__main__":
     defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
                 cl.WPT_SERVER_URL_ENTRY: None,
                 cl.WPT_API_KEY_ENTRY: None,
-                cl.JOBS_DB_PATH_ENTRY: 'jobs.sqlite',
+                cl.JOBS_DB_PATH_ENTRY: 'experiment.db',
                 cl.GCP_PROJECT_NAME_ENTRY: None,
                 cl.GCP_IMAGE_NAME_ENTRY: None,
                 cl.GCP_INSTANCE_TYPE_ENTRY: "n1-standard-2",
                 cl.GCP_STATE_FILE_DIR: None
                 }
     parser = cl.get_core_args_parser('Handles instance creation, monitoring and shutdown on GCP')
-    parser.add_argument("--sleep-duration", type=int, default=180,
+    parser.add_argument("--sleep-duration", type=int, default=180, #TODO Bug here?
                         help='How many seconds to sleep between checking instance health')
     cl.get_full_args_parser("Handles instance creation, monitoring and shutdown on GCP",
                             wpt_location=False, gcp_instances=True)

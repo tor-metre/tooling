@@ -47,7 +47,7 @@ class GCP:
     def _create_instance(self, instance):
         zone = instance.zone
         name = instance.gcp_name
-        disk = instance.base_image
+        disk = instance.base_image.name
         location = instance.wpt_location
         archive = instance.browser_archive
         assert (zone in self.global_zones)
@@ -75,7 +75,7 @@ class GCP:
                     'value': location
                 }, {
                     'key': 'archive',
-                    'value': archive
+                    'value': archive.hash #TODO Fix and add check?
                 }, {
                     'key': 'wpt_server',
                     'value': self.wpt_server_url
