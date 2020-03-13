@@ -42,7 +42,7 @@ class GCP:
 
     def get_instance_image_id(self,name):
         response = self.compute.images().get(project=self.project, image=name).execute()
-        return response['sourceImageId']
+        return response['id']
 
     def _create_instance(self, instance):
         zone = instance.zone
@@ -161,7 +161,7 @@ class GCP:
         for i in instances:
             if i['name'] in name_to_instance.keys():
                 if i['status'] == 'TERMINATED':
-                    to_restart.add(i['name'])
+                    to_restart.add(name_to_instance[i['name']])
                 del name_to_instance[i['name']]
         self.logger.debug(f"Restarting {len(to_restart)} instances")
         for t in to_restart:
