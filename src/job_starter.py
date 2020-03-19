@@ -39,7 +39,7 @@ def submit_jobs(wpt, jobs_to_submit):
 
 def main(config):
     experiment.init_database(config[cl.JOBS_DB_PATH_ENTRY])
-    wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY], locations_file=cl.WPT_LOCATIONS_PATH_ENTRY)
+    wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY], locations_file=config[cl.WPT_LOCATIONS_PATH_ENTRY])
     while True:
         wpt.set_server_locations(experiment.get_all_wpt_locations())
         submit_jobs(wpt, get_jobs_to_queue(wpt, max_queue_length=config['max_queue_length']))
@@ -47,7 +47,7 @@ def main(config):
 
 
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.DEBUG)
     defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
                 cl.WPT_SERVER_URL_ENTRY: None,
                 cl.WPT_API_KEY_ENTRY: None,

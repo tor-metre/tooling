@@ -131,8 +131,7 @@ class WPT:
         count = 1
         for location in locations:
             count += 1
-            data += str(count) + "=" + location + "\n"
-        data += 'label="Test Location"\n'
+            data += str(count) + "=" + location.wpt_location + "\n"
         data += """
     [TESTLOCATIONCHANGEME]
     browser=Chrome,Firefox,Tor Browser
@@ -140,12 +139,12 @@ class WPT:
     
     """
         for location in locations:
-            data += "[" + location + "]" + "\n"
-            if 'tor' in location:
-                data += "browser=Tor Browser\n"
+            data += "[" + location.wpt_location + "]" + "\n"
+            data += "browser=Tor Browser,Firefox\n"
+            if location.description is None:
+                data += 'label="' + 'No Description' + '"\n'
             else:
-                data += "browser=Firefox\n"
-            data += 'label="' + location + '"\n'
+                data += 'label="' + location.description + '"\n'
             data += '\n'
         f.write(data)
         f.close()
