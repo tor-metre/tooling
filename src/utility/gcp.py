@@ -9,12 +9,13 @@ import datetime
 class GCP:
     # WARNING - This class is NOT Thread Safe
 
-    def __init__(self, project,wpt_server_url):
+    def __init__(self, project,wpt_server_url,wpt_key):
         self.logger = logging.getLogger("utility." + __name__)
         self.logger.debug(f"Initialised logging for GCP Object attached to project {project}")
         self.compute = discovery.build('compute', 'v1')
         self.project = project
         self.wpt_server_url = wpt_server_url
+        self.wpt_key = wpt_key
         self.global_zones = None
         self.global_zones = self._fetch_zones()
 
@@ -49,12 +50,13 @@ class GCP:
         name = instance.gcp_name
         disk = instance.base_image.name
         location = instance.wpt_location
-        archive = instance.browser_archive
+        browser_archive = instance.browser_archive
         assert (zone in self.global_zones)
         self.logger.debug(f"Creating an instance in {zone} with {name} of type {instance.instance_type}")
         machine_type_url = f"zones/{zone}/machineTypes/{instance.instance_type}"
         image_url = f'projects/{self.project}/global/images/{disk}'
         permission_url = 'https://www.googleapis.com/auth/'
+        wpt_data = f"wpt_server={self.wpt_server_url} wpt_loc={location} wpt_key={self.wpt_key} tor_browser={browser_archive}"
         config = {
             'name': name,
             'machineType': machine_type_url,
@@ -71,16 +73,9 @@ class GCP:
                     'key': 'shutdown-script',
                     'value': "./shutdown.sh" #TODO Fix
                 }, {
-                    'key': 'location',
-                    'value': location
-                }, {
-                    'key': 'archive',
-                    'value': archive.hash #TODO Fix and add check?
-                }, {
-                    'key': 'wpt_server',
-                    'value': self.wpt_server_url
-                }
-                ]
+                    'key': 'wpt_data',
+                    'value': wpt_data
+                }]
             }
         }
         instance.desired_state = 'CREATED'
