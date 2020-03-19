@@ -22,7 +22,7 @@ def get_instances_to_stop(gcp, wpt, all_instances=None):
     if all_instances is None:
         all_instances = gcp.get_instances()
     locations_with_work = set([x.wpt_location for x in experiment.get_pending_instances()])
-    locations_with_jobs = set(wpt.get_active_locations())
+    locations_with_jobs = set(wpt.get_busy_locations())
     intended_active_locations = locations_with_work.union(locations_with_jobs)
     intended_active_instances = set([experiment.wpt_location_to_gcp_name(x) for x in intended_active_locations])
     logger.debug(f"There are {len(intended_active_instances)}  intended active instances.")
@@ -41,7 +41,7 @@ def get_maybe_stuck_instances(wpt, gcp, all_instances=None):
     if all_instances is None:
         all_instances = gcp.get_instances()
     running_instances = set([x['name'] for x in gcp.get_running_instances(instances=all_instances)])
-    intended_active_locations = wpt.get_active_locations()
+    intended_active_locations = wpt.get_busy_locations()
     intended_active_instances = set([experiment.wpt_location_to_gcp_name(x) for x in intended_active_locations])
     possible_stuck = running_instances - intended_active_instances
     possible_stuck = [x for x in possible_stuck if 'wpt-server' not in x]

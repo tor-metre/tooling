@@ -81,7 +81,7 @@ class WPT:
         self.logger.debug("Fetching the testers from the WPT Server")
         return _get_buffered_json(args)
 
-    def get_all_locations(self):
+    def get_online_locations(self):
         # See which locations the server thinks are up.
         # Check all active instances appear on this list
         # Its okay if the server thinks some locations are up but the instances are down. It just hasn't realised yet.
@@ -94,7 +94,7 @@ class WPT:
         return _get_buffered_json(args)
 
     def get_job_locations(self):
-        q = self.get_all_locations()
+        q = self.get_online_locations()
         if 'data' not in q['response'].keys():
             # No queues up!
             return dict()
@@ -110,10 +110,12 @@ class WPT:
         self.logger.debug(f"There are {len(result.keys())} locations on the server")
         return result
 
-    def get_active_locations(self):
+    def get_busy_locations(self):
         return [k for (k, v) in self.get_job_locations().items() if v > 0]
 
+    #TODO Think about using the Experiment Field to separate instances?
     def set_server_locations(self, locations):
+        #Expects an instance!
         assert (self.temp_locations_file is not None)
         assert (self.locations_file is not None)
         self.logger.info(f"Updating the location file at {self.locations_file} with {len(locations)} locations")

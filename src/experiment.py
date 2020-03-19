@@ -71,7 +71,7 @@ def get_awaiting_jobs_by_wpt_location(wpt_location, limit):
 
 def get_all_wpt_locations():
     results = Instance.select(Instance.wpt_location).distinct()
-    return set([x.wpt_location for x in results])
+    return results
 
 
 def wpt_location_to_gcp_name(location):
