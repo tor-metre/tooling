@@ -50,8 +50,8 @@ def get_maybe_stuck_instances(wpt, gcp, all_instances=None):
 
 
 def main(config):
-    wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY])
-    gcp = GCP(config[cl.GCP_PROJECT_NAME_ENTRY], config[cl.WPT_SERVER_URL_ENTRY],config[cl.WPT_API_KEY_ENTRY])
+    wpt = WPT(config[cl.WPT_SERVER_URL_ENTRY], config[cl.WPT_API_KEY_ENTRY],locations_file=config[cl.WPT_LOCATIONS_PATH_ENTRY])
+    gcp = GCP(config[cl.GCP_PROJECT_NAME_ENTRY], config[cl.WPT_SERVER_URL_ENTRY],config[cl.WPT_LOCATION_KEY_ENTRY])
     experiment.init_database(config[cl.JOBS_DB_PATH_ENTRY])
     sleep_duration = config['sleep_duration']
     old_stuck = set()
@@ -59,6 +59,7 @@ def main(config):
                  f"job database {config[cl.JOBS_DB_PATH_ENTRY]} and WPT server {wpt.server}")
     while True:
         instances = gcp.get_instances()
+        wpt.set_server_locations(experiment.get_all_instances())
         to_start = get_instances_to_start(gcp, all_instances=instances)
         to_stop = get_instances_to_stop(gcp, wpt, all_instances=instances)
         maybe_stuck = get_maybe_stuck_instances(wpt, gcp, all_instances=instances)
