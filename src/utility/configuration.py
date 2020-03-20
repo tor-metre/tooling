@@ -7,6 +7,7 @@ import argparse
 
 WPT_SERVER_URL_ENTRY = "wpt-server-url"
 WPT_API_KEY_ENTRY = "wpt-api-key"
+WPT_LOCATION_KEY_ENTRY = "wpt-location-key"
 WPT_LOCATIONS_PATH_ENTRY = "wpt-locations-path"
 
 JOBS_DB_PATH_ENTRY = "jobs-db-path"
@@ -20,7 +21,7 @@ FILE_CONFIG_PATH_ENTRY = "file-config-path"
 
 
 def get_known_config_keys():
-    return {WPT_SERVER_URL_ENTRY, JOBS_DB_PATH_ENTRY, WPT_API_KEY_ENTRY,
+    return {WPT_SERVER_URL_ENTRY, JOBS_DB_PATH_ENTRY, WPT_API_KEY_ENTRY,WPT_LOCATION_KEY_ENTRY,
             WPT_LOCATIONS_PATH_ENTRY, GCP_PROJECT_NAME_ENTRY,
             GCP_IMAGE_NAME_ENTRY, GCP_INSTANCE_TYPE_ENTRY, GCP_STATE_FILE_DIR}
 
@@ -57,6 +58,10 @@ def validate_config(config):
     if WPT_API_KEY_ENTRY in config.keys():
         if len(config[WPT_API_KEY_ENTRY]) != 32:  # TODO Check this is actually the correct length!
             logging.critical("The wpt-api-key is the wrong length.")
+            success = False
+    if WPT_LOCATION_KEY_ENTRY in config.keys():
+        if len(config[WPT_LOCATION_KEY_ENTRY]) != 32:  # TODO Check this is actually the correct length!
+            logging.critical("The wpt-location-key is the wrong length.")
             success = False
     if WPT_LOCATIONS_PATH_ENTRY in config:
         if not os.path.isfile(config[WPT_LOCATIONS_PATH_ENTRY]):
@@ -137,6 +142,8 @@ def add_wpt_args(parser):
 def add_wpt_location_args(parser):
     parser.add_argument("--wpt-locations", metavar='PATH', type=str,
                         help='The path to the locations.ini file for the WPT Server', dest=WPT_LOCATIONS_PATH_ENTRY)
+    parser.add_argument("--wpt-location-key", metavar='SECRET', type=str, help='The Location  Key for the WPT Server',
+                        dest=WPT_LOCATION_KEY_ENTRY)
     return parser
 
 
