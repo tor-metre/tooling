@@ -180,6 +180,8 @@ class Job(BaseModel):
     finished_date = DateTimeField(null=True)
 
     def get_options_list(self):
+        if self.options is None:
+            return ""
         d = json.loads(self.options)  # Double check if this is safe?
         r = list()
         for k, v in d.items():
@@ -187,9 +189,9 @@ class Job(BaseModel):
             r.append(f"{v}")
         return r
 
-    def set_submitted(self, url):
+    def set_submitted(self, wpt_id):
         self.status = 'SUBMITTED'
-        self.result_url = url
+        self.wpt_id = wpt_id
         self.submitted_date = datetime.datetime.now()
         self.save()
 
@@ -205,7 +207,8 @@ class Job(BaseModel):
         self.error_msg = result
         self.save()
 
-    def set_finished(self):
+    def set_finished(self,url):
         self.status = 'FINISHED'
         self.finished_date = datetime.datetime.now()
+        self.result_url = url
         self.save()
