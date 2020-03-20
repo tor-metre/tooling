@@ -121,23 +121,25 @@ class WPT:
         self.logger.info(f"Updating the location file at {self.locations_file} with {len(locations)} locations")
         self.logger.debug(f"Using {self.temp_locations_file} as the temporary file")
         f = open(self.temp_locations_file, 'w')
-        data = """[locations]
-    1=Test_loc
-    default=Test_loc
+        data = """
+[locations]
+1=Test_loc
+default=Test_loc
       
-    [Test_loc]
-    1=TESTLOCATIONCHANGEME
-    """
+[Test_loc]
+1=TESTLOCATIONCHANGEME
+"""
         count = 1
         for location in locations:
             count += 1
             data += str(count) + "=" + location.wpt_location + "\n"
-        data += """
-    [TESTLOCATIONCHANGEME]
-    browser=Chrome,Firefox,Tor Browser
-    label="Test Location"
-    
-    """
+        data += """label="Test Location"
+
+[TESTLOCATIONCHANGEME]
+browser=Chrome,Firefox,Tor Browser
+label="Test Location"
+
+"""
         for location in locations:
             data += "[" + location.wpt_location + "]" + "\n"
             data += "browser=Tor Browser,Firefox\n"
