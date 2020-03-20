@@ -160,12 +160,12 @@ class Instance(BaseModel):
         return None
 
     def get_maybe_finished_jobs(self, limit, submitted_before):
-        return self.jobs.select().where(Job.status == "SUBMITTED" and Job.submitted_date < submitted_before) \
-            .order_by(Job.submitted_date).asc().limit(limit)
+        return self.jobs.select().where((Job.status == "SUBMITTED") & (Job.submitted_date < submitted_before)) \
+            .order_by(Job.submitted_date.asc()).limit(limit)
 
     def get_awaiting_jobs(self, limit):
         current_time = datetime.datetime.now()
-        return self.jobs.select().where(Job.status == "AWAITING" and Job.notAfter > current_time > Job.notBefore) \
+        return self.jobs.select().where((Job.status == "AWAITING") & (Job.notAfter > current_time) & (current_time > Job.notBefore)) \
             .order_by(Job.notBefore, Job.id).limit(limit)
 
 
