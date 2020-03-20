@@ -5,12 +5,12 @@ from utility import configuration as cl
 import experiment
 
 def update_job(wpt, job):
-    result = wpt.get_test_result(job.wpt_id)
-    if is_successful_result(result):
-        job.set_finished()
+    outcome, result = wpt.get_test_result(job.wpt_id)
+    if outcome:
+        job.set_finished(result)
         return True
     else:
-        job.set_error_testing('NOT YET IMPLEMENTED!')  # TODO Implement
+        job.set_error_testing(result)
         logging.warning(f"Job {job.id} with queue id {job.wpt_id} failed during testing with reason UNIMPLEMENTED")
         return False
 

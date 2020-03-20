@@ -29,7 +29,7 @@ def is_successful_result(result):
         result - A result returned from the WPT API converted into a python object.
 
     """
-    return result['statusCode'] == 200 and result['statusText'] == 'Test Complete'
+    return result['statusCode'] == 200 and (result['statusText'] == 'Test Complete' or result['statusText'] == 'Ok')
 
 
 class WPT:
@@ -60,7 +60,7 @@ class WPT:
             '--server', self.server,
             '--key', self.key,
             '--location', job.instance.wpt_location,
-            '--label', job.misc
+            '--label', job.description
             #'--keepua',  # Don't change the useragent to indicate this is a bot
             #'--first',  # Don't try for a repeat view
         ]
@@ -70,7 +70,7 @@ class WPT:
             queue_id = result['data']['testId']
             return True, queue_id
         else:
-            return False, "ERROR MESSAGE NOT YET IMPLEMENTED"  # TODO return the error from the response
+            return False, result  # TODO return the error from the response
 
     def get_testers(self):
         args = ['webpagetest',
@@ -177,4 +177,8 @@ class WPT:
                 '--server',
                 self.server
                 ]
-        return _get_buffered_json(args)
+        r = _get_buffered_json(args)
+        if is_successful_result(r):
+            return True, r['data']['summary']
+        else:
+            return False, r
