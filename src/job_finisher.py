@@ -24,7 +24,9 @@ def main(config):
         # TODO This should work out a submitted_before time based on the queue size? Some other heuristic?
         # we could save a lot of time here!
         candidate_finished = experiment.get_maybe_finished_jobs(1000)
+        logging.debug(f"Discovered {len(candidate_finished)} possibily finished jobs")
         for c in candidate_finished:
+            logging.debug(f"Checking candidate for finished: {c}")
             if update_job(wpt, c):
                 successful += 1
             else:
@@ -35,7 +37,7 @@ def main(config):
 
 
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.DEBUG)
     defaults = {cl.FILE_CONFIG_PATH_ENTRY: 'settings.yaml',
                 cl.WPT_SERVER_URL_ENTRY: None,
                 cl.WPT_API_KEY_ENTRY: None,
