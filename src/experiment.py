@@ -66,13 +66,7 @@ def get_maybe_finished_jobs(limit, submitted_before=None):
 
 def get_awaiting_jobs_by_wpt_location(wpt_location, limit):
     i = get_instance_by_gcp_name(wpt_location_to_gcp_name(wpt_location))
-    return i.get_awaiting(limit)
-
-
-def get_all_wpt_locations():
-    results = Instance.select(Instance.wpt_location).distinct()
-    return results
-
+    return i.get_awaiting_jobs(limit)
 
 def wpt_location_to_gcp_name(location):
     return Instance.get(Instance.wpt_location == location).gcp_name
