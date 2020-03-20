@@ -174,6 +174,6 @@ class GCP:
         stopped = 0
         for i in instances:
             if i['name'] in name_to_instance.keys() and i['status'] == "RUNNING":
-                self._stop_instance(i['name'])
+                self._stop_instance(name_to_instance[i['name']])
                 stopped += 1
         self.logger.debug(f"Deactivated {stopped} instance(s) out of {len(name_to_instance.keys())} requested")
