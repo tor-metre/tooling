@@ -15,11 +15,11 @@ if not result:
     print("Invalid configuration. Quitting...")
     exit(-1)
 
-g = GCP(config[cl.GCP_PROJECT_NAME_ENTRY], config[cl.WPT_SERVER_URL_ENTRY])
+g = GCP(config[cl.GCP_PROJECT_NAME_ENTRY], config[cl.WPT_SERVER_URL_ENTRY],config[cl.WPT_API_KEY_ENTRY])
 
 init_database('/home/dennis/dev_storage/experiments.db')
-img = create_image_type('firefox-works','old image',g)
-#img = BaseImage.get(BaseImage.name=='firefox-works')
+img = create_image_type('gce-fresh-image','old image',g)
+#img = BaseImage.get(BaseImage.name=='gce-fresh-image')
 ba = create_browser_archive("malerie","browser-archives/test-archive.tar","Empty Archive")
 #ba = BrowserArchive.get(BrowserArchive.bucket=='malerie')
 #print("Created image")
