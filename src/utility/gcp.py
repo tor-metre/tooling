@@ -50,7 +50,7 @@ class GCP:
         name = instance.gcp_name
         disk = instance.base_image.name
         location = instance.wpt_location
-        browser_archive = instance.browser_archive
+        browser_archive = f"{instance.browser_archive.bucket}://{instance.browser_archive.blob}"
         assert (zone in self.global_zones)
         self.logger.debug(f"Creating an instance in {zone} with {name} of type {instance.instance_type}")
         machine_type_url = f"zones/{zone}/machineTypes/{instance.instance_type}"
